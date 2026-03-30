@@ -35,6 +35,13 @@ ln -s ~/.agents/skills ~/.opencode/skills
 | [specs-generator](skills/specs-generator/SKILL.md) | Creates SPECS.md files for new features and design documentation. |
 | [test-generator](skills/test-generator/SKILL.md) | Generates unit and integration tests following existing patterns. |
 
+## Scripts
+
+| Script | Description |
+|--------|-------------|
+| `scripts/sync-skills.sh` | Symlinks each skill into `~/.claude/skills` and `~/.opencode/skills`, removing stale links. |
+| `scripts/claude-worktree.sh` | Creates a git worktree under `.claude/worktrees/<branch>`, installs deps, and launches Claude Code. |
+
 ## Skills in the SDLC
 
 ```mermaid
