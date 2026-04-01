@@ -11,6 +11,7 @@ Read plan file $1. Interview me using AskUserQuestion about:
 - Concerns and tradeoffs
 - Edge cases
 - Dependencies and constraints
+- Security implications
 
 Ask non-obvious questions only. One question at a time. Go deep.
 

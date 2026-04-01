@@ -34,6 +34,7 @@ ln -s ~/.agents/skills ~/.opencode/skills
 | [semgrep-audit](skills/semgrep-audit/SKILL.md) | White-box security auditor with semgrep integration. Triages scan results and proposes concrete fixes. |
 | [specs-generator](skills/specs-generator/SKILL.md) | Creates SPECS.md files for new features and design documentation. |
 | [test-generator](skills/test-generator/SKILL.md) | Generates unit and integration tests following existing patterns. |
+| [unslop](skills/unslop/SKILL.md) | Rewrites text to remove AI tropes and cliches, making it sound more natural and human. |
 
 ## Scripts
 
