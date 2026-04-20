@@ -41,7 +41,7 @@ Run these in order.
 
 ### 1. Plan the run
 
-Emit a one-line plan stating: cutoff window (default: last 24h), stack filter, and whitelist size. Let the user interrupt if they want to change scope (e.g. widen to 3d after a quiet weekend).
+Emit a one-line plan stating: scan start timestamp (UTC, format `YYYY-MM-DD HH:MM:SS UTC`), cutoff window (default: last 24h), stack filter, and whitelist size. Let the user interrupt if they want to change scope (e.g. widen to 3d after a quiet weekend).
 
 ### 2. Fetch whitelist in parallel
 
@@ -143,10 +143,10 @@ If the report is empty, say exactly: `No high-signal threats in window. Next sca
 
 After outputting the report to the user, write it to a file using the `Write` tool.
 
-- Path: `~/vuln-reports/YYYY-MM-DD_HH-MM_vuln-scan.md` (use the current date/time)
+- Path: `~/vuln-reports/YYYY-MM-DD_HH-MM-SS_vuln-scan.md` — timestamp format is `YYYY-MM-DD_HH-MM-SS` (24h, UTC, zero-padded). Example: `2026-04-20_14-07-33_vuln-scan.md`. Use `date -u +%Y-%m-%d_%H-%M-%S` to obtain the value at write time.
 - Content: the report as shown to the user (ranked table, source links, suggested commands)
 - Every CVE / incident name in the table must be a markdown hyperlink to its primary source. Do not omit links.
-- Add a header line: `# Vuln Scan — YYYY-MM-DD HH:MM` and a `**Window:** Xd | **Stack:** Node/TS/MongoDB/npm/AWS/crypto` metadata line before the table.
+- Add a header line: `# Vuln Scan — YYYY-MM-DD HH:MM:SS UTC` (same timestamp, spaces/colons for readability) and a `**Window:** Xd | **Stack:** Node/TS/MongoDB/npm/AWS/crypto` metadata line before the table. Example header: `# Vuln Scan — 2026-04-20 14:07:33 UTC`.
 - Confirm to the user with a single line: `Report saved to ~/vuln-reports/<filename>`.
 
 ## Rules
