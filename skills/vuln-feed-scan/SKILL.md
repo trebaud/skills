@@ -23,6 +23,8 @@ Check these first. Do not read sources not on this list unless the user expands 
 - https://socket.dev/blog
 - https://www.aikido.dev/category/vulnerabilities-threats
 - https://snyk.io/blog/
+- https://www.stepsecurity.io/blog
+- https://www.wiz.io/blog
 
 **Secondary / journalism:** original reporting, often derivative of a vendor advisory but can break stories.
 
