@@ -1,4 +1,4 @@
-# My Agent Config
+# Skills
 
 A collection of agent skills I use for work.
 
