@@ -104,7 +104,7 @@ Include exploitability analysis for any remaining vulnerabilities.
 ## Anti-Patterns
 
 - **Don't delete the lockfile** — use `pnpm update <pkg> --recursive` instead
-- **Don't use overrides** before trying `--recursive` — overrides bypass semver intent
+- **Never use overrides**, overrides bypass semver intent
 - **Don't do risky major bumps** for non-exploitable CVEs
 
 ## Example

@@ -174,13 +174,13 @@ Pull candidates from items dropped in step 3c / 4 for score reasons only. Do not
 
 After outputting the report to the user, write both a markdown and an HTML file using the `Write` tool. Use `date -u +%Y-%m-%d_%H-%M-%S` to obtain the timestamp at write time. Write both files in parallel.
 
-**6a. Markdown file** — `~/vuln-reports/YYYY-MM-DD_HH-MM-SS_vuln-scan.md`
+**6a. Markdown file** — `./YYYY-MM-DD_HH-MM-SS_vuln-scan.md`
 
 - Content: the report as shown to the user (ranked table, source links, suggested commands)
 - Every CVE / incident name in the table must be a markdown hyperlink to its primary source. Do not omit links.
 - Add a header line: `# Vuln Scan — YYYY-MM-DD HH:MM:SS UTC` (same timestamp, spaces/colons for readability) and a `**Window:** Xd | **Stack:** Node/TS/MongoDB/npm/AWS/crypto` metadata line before the table. Example header: `# Vuln Scan — 2026-04-20 14:07:33 UTC`.
 
-**6b. HTML file** — `~/vuln-reports/YYYY-MM-DD_HH-MM-SS_vuln-scan.html`
+**6b. HTML file** — `~./YYYY-MM-DD_HH-MM-SS_vuln-scan.html`
 
 Write a single self-contained HTML file with:
 - Inline CSS only (no external dependencies)
@@ -203,10 +203,10 @@ Write a single self-contained HTML file with:
 
 After writing the HTML file, open it:
 ```bash
-open ~/vuln-reports/YYYY-MM-DD_HH-MM-SS_vuln-scan.html
+open ./YYYY-MM-DD_HH-MM-SS_vuln-scan.html
 ```
 
-Confirm to the user with a single line listing both paths: `Reports saved to ~/vuln-reports/<filename>.md and <filename>.html`.
+Confirm to the user with a single line listing both paths: `Reports saved to ./<filename>.md and <filename>.html`.
 
 ## Rules
 
