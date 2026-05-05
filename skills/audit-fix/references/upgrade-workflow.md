@@ -66,7 +66,7 @@ git add <call-site files>
 git commit -m "refactor: migrate <parent> usages to v<new-major> API"
 ```
 
-**Fallback:** If too complex, try latest minor/patch of current major first. If that doesn't fix it, document and recommend the major bump as a separate task.
+If the migration is too complex, try the latest minor/patch of the current major first. If that doesn't fix it, document the finding and recommend the major bump as a separate task.
 
 ## Strategy D: Replace Dependency
 
@@ -127,11 +127,11 @@ auditConfig:
 
 Rules for `ignoreGhsas` entries:
 
-- **Comment block above each group** — explain the package, why no upgrade path exists, why it's not exploitable, and what would force a revisit. The comment IS the audit trail; do not create a separate `SECURITY.md` / acceptance doc.
-- **One advisory per line** with an inline `# <pkg> <reason>` comment so `git blame` makes the source obvious.
-- **Group by root parent** — all GHSAs from the same upstream go together, under one comment block.
-- Verify with `pnpm audit --audit-level <level> --prod` — the suppressed GHSAs should disappear from the output.
-- **Commit the decision** — one commit per accept-risk decision (per root parent group), so `git log -- pnpm-workspace.yaml` is a chronological record of accepted risks:
+- Put a comment block above each group explaining the package, why no upgrade path exists, why it's not exploitable, and what would force a revisit. The comment IS the audit trail; do not create a separate `SECURITY.md` / acceptance doc.
+- Put one advisory per line with an inline `# <pkg> <reason>` comment so `git blame` makes the source obvious.
+- Group by root parent: all GHSAs from the same upstream go together, under one comment block.
+- Verify with `pnpm audit --audit-level <level> --prod`. The suppressed GHSAs should disappear from the output.
+- Commit one accept-risk decision per root parent group, so `git log -- pnpm-workspace.yaml` is a chronological record of accepted risks:
 
   ```bash
   git add pnpm-workspace.yaml

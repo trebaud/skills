@@ -84,7 +84,7 @@ For each root parent, check these in order — use the first that applies:
 
 #### Hard Rule: never add `pnpm.overrides` without explicit user approval
 
-`pnpm.overrides` (in `package.json` or `pnpm-workspace.yaml`) is **last resort only**. Overrides bypass semver intent, mask upstream maintenance gaps, and silently couple us to versions the parent never declared support for.
+`pnpm.overrides` (in `package.json` or `pnpm-workspace.yaml`) is **last resort only**. Overrides bypass semver intent and pin us to versions the parent never declared support for, which masks upstream maintenance gaps.
 
 Before adding **any** override entry you MUST:
 
