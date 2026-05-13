@@ -123,13 +123,19 @@ Re-apply the score ≥ 7 cutoff after this adjustment. A single primary-source i
 
 For every finding that survived step 4, check whether the affected package/component appears in any repository sitting in the current working directory. This is the step that turns a feed scan into an actionable patch list.
 
-**5a. Enumerate repos.** Run `ls -la` (or `find . -maxdepth 2 -name package.json -not -path "*/node_modules/*"`) to identify candidate repo directories. Treat each immediate subdirectory as a separate repo. Skip `node_modules`, build output dirs, and anything obviously not a project root. Record the list — it goes in the report header.
+**5a. Enumerate repos and attack surfaces.** Run `ls -la` (or `find . -maxdepth 2 -name package.json -not -path "*/node_modules/*"`) to identify candidate repo directories. Treat each immediate subdirectory as a separate repo. Skip `node_modules`, build output dirs, and anything obviously not a project root. Record the list — it goes in the report header.
 
-**5b. Per-finding lookup.** For each surviving candidate, run the cheapest applicable check across every repo in parallel:
+For **every** repo in the list, enumerate the attack surfaces below before per-finding lookup. Do not skip a surface because the previous repo didn't have it; check each repo independently. Missing files are fine, but the *check* must run per repo per surface.
 
-- **npm package compromise / CVE in a JS/TS library** — grep `package.json` for the package name, then grep `pnpm-lock.yaml` / `package-lock.json` / `yarn.lock` to capture the actually-resolved version. Both direct and transitive matter.
-- **npm registry / supply-chain worm with a known publish-window** — also check the lockfile's `mtime` against the malicious-publish window (`ls -la <repo>/pnpm-lock.yaml`). A lockfile written inside or seconds after the window is a critical signal even when versions look clean.
-- **GitHub Actions / CI vulnerability** — grep `.github/workflows/*.yml` for the affected action or trigger.
+- **Package manifests and lockfiles** — `package.json`, `pnpm-lock.yaml` (**always check this — pnpm is the primary package manager**), `pnpm-workspace.yaml`, `package-lock.json`, `yarn.lock`, `npm-shrinkwrap.json`, `bun.lockb`, and any nested workspace manifests (e.g. `packages/*/package.json`, `apps/*/package.json`). These are the primary attack surface; never skip them.
+- **GitHub Actions** — every file under `.github/workflows/` (`*.yml`, `*.yaml`) plus `.github/actions/*/action.yml` for composite actions. Treat this surface as mandatory for every repo, even if the finding looks unrelated — a finding can hit via a reusable action or a third-party `uses:` reference you wouldn't otherwise expect.
+- **Other manifests** — `Dockerfile`, `docker-compose*.yml`, IaC (`*.tf`, `cdk.*`, `serverless.yml`, `cloudformation*.{yml,json}`), and runtime configs (`.nvmrc`, `.node-version`, `tsconfig.json`) when the finding plausibly touches them.
+
+**5b. Per-finding lookup.** For each surviving candidate, run the cheapest applicable check across every repo in parallel. **Every finding must be cross-checked against every repo** — do not stop at the first hit, and do not assume one repo's result applies to the others. When in doubt, run the grep; the cost is negligible compared to missing a hit.
+
+- **npm package compromise / CVE in a JS/TS library** — for **every** repo, grep all package manifests (`package.json` at root and in any workspace path) for the package name, then grep **every** lockfile present (`pnpm-lock.yaml`, `package-lock.json`, `yarn.lock`, `npm-shrinkwrap.json`, `bun.lockb`) to capture the actually-resolved version. Both direct and transitive matter — a clean `package.json` with a poisoned lockfile entry is still a hit.
+- **npm registry / supply-chain worm with a known publish-window** — also check each lockfile's `mtime` against the malicious-publish window (`ls -la <repo>/pnpm-lock.yaml` etc., for every lockfile in every repo). A lockfile written inside or seconds after the window is a critical signal even when versions look clean.
+- **GitHub Actions / CI vulnerability** — for **every** repo, grep all files under `.github/workflows/` (`*.yml` and `*.yaml`) and any `.github/actions/*/action.yml` composite actions for the affected action, `uses:` reference, trigger, or pattern. Always run this check even when the finding's primary vector looks unrelated — a vulnerable third-party action can land via a workflow that pulls it transitively.
 - **AWS service issue** — grep IaC files (`*.tf`, `cdk.*`, `serverless.yml`, `cloudformation*.{yml,json}`) and SDK imports (`@aws-sdk/`, `aws-sdk`) for the affected service.
 - **Container / runtime CVE** — grep `Dockerfile`, `docker-compose*.yml`, base image tags.
 - **Crypto / web3 library** — grep package names plus any direct imports.
