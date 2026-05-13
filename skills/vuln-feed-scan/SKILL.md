@@ -1,6 +1,6 @@
 ---
 name: vuln-feed-scan
-description: Scan a whitelist of security feeds for recent high-signal vulnerabilities that pose immediate threat to our stack (nodejs, typescript, mongo, npm, aws, crypto). Use when the user asks to check security news, scan vuln feeds, look for recent CVEs/zero-days, or run an OSINT sweep for security incidents. Keywords include "check vulns", "security feed scan", "any new CVEs", "zero-day check", "scan for threats".
+description: Scan a whitelist of security feeds for recent high-signal vulnerabilities that pose immediate threat to our stack (nodejs, typescript, mongo, npm, aws, crypto), then cross-check each surviving finding against repositories in the current working directory and report concrete lockfile/package hits. Use when the user asks to check security news, scan vuln feeds, look for recent CVEs/zero-days, or run an OSINT sweep for security incidents. Keywords include "check vulns", "security feed scan", "any new CVEs", "zero-day check", "scan for threats".
 ---
 
 # Vuln Feed Scan
@@ -119,37 +119,68 @@ Adjust score based on what the search returns. Do not drop items for lack of cor
 
 Re-apply the score ≥ 7 cutoff after this adjustment. A single primary-source item (e.g. a fresh KEV entry) still clears the bar on its own; a single secondary-source story with no corroboration usually will not.
 
-### 5. Report
+### 5. Cross-check against local repos
+
+For every finding that survived step 4, check whether the affected package/component appears in any repository sitting in the current working directory. This is the step that turns a feed scan into an actionable patch list.
+
+**5a. Enumerate repos.** Run `ls -la` (or `find . -maxdepth 2 -name package.json -not -path "*/node_modules/*"`) to identify candidate repo directories. Treat each immediate subdirectory as a separate repo. Skip `node_modules`, build output dirs, and anything obviously not a project root. Record the list — it goes in the report header.
+
+**5b. Per-finding lookup.** For each surviving candidate, run the cheapest applicable check across every repo in parallel:
+
+- **npm package compromise / CVE in a JS/TS library** — grep `package.json` for the package name, then grep `pnpm-lock.yaml` / `package-lock.json` / `yarn.lock` to capture the actually-resolved version. Both direct and transitive matter.
+- **npm registry / supply-chain worm with a known publish-window** — also check the lockfile's `mtime` against the malicious-publish window (`ls -la <repo>/pnpm-lock.yaml`). A lockfile written inside or seconds after the window is a critical signal even when versions look clean.
+- **GitHub Actions / CI vulnerability** — grep `.github/workflows/*.yml` for the affected action or trigger.
+- **AWS service issue** — grep IaC files (`*.tf`, `cdk.*`, `serverless.yml`, `cloudformation*.{yml,json}`) and SDK imports (`@aws-sdk/`, `aws-sdk`) for the affected service.
+- **Container / runtime CVE** — grep `Dockerfile`, `docker-compose*.yml`, base image tags.
+- **Crypto / web3 library** — grep package names plus any direct imports.
+
+For each finding, capture: the repo(s) that hit, the file(s) and line(s), the actually-resolved version where applicable, and whether it's direct or transitive. Note the lockfile `mtime` only when the finding has a time-bounded compromise window. Keep this evidence — it goes into the detail block.
+
+**5c. Run read-only checks and capture verbatim output.** Use cheap, read-only tools: `grep -rn`, `ls -la`, `cat`, `find`. Run them via `Bash` and **keep the exact output** — trimmed to the relevant lines, but verbatim (file paths, line numbers, resolved versions). This output is embedded into the report in step 6b as a fenced `Local evidence` block, so the user can see for themselves what we found. Do not paraphrase. Do not run anything that mutates lockfiles, installs packages, hits the network, or modifies CI state — those are *remediation commands* the user runs themselves (step 6c). If a repo's lockfile is in an unfamiliar format, note it (`{repo}: lockfile format unrecognized`) and move on.
+
+**5d. No-hit findings still ship.** A finding can clear the score bar without matching any local repo — it stays in the report, but its detail block's `In our repos` line says `No direct or transitive match found in <N> repos checked.` so the user sees the check was actually run.
+
+**5e. Hard-drop findings the local check rules out.** If a finding's only path to relevance is "we might use X" and grep proves we don't (e.g. Jenkins plugin compromise + no Jenkins anywhere), move the finding from the main report to *Also worth a glance* with the reason `no usage in local repos`. Don't silently delete it.
+
+### 6. Report
 
 The report is the only thing the user reads. Format it for scanning, with plenty of whitespace between findings.
 
-**5a. Ranked table.** Most urgent first. One row per finding:
+**6a. Ranked table.** Most urgent first. One row per finding:
 
 ```
-| # | Severity | CVE / Name | Affects | Published | Action |
+| # | Severity | CVE / Name | Affects | In our repos | Published | Action |
 ```
 
 - `#` is a 1-based index matching the detail blocks below, so the user can jump between them.
 - Severity: Critical / High only. Anything lower does not belong in the report.
 - Affects: the specific stack item it hits (e.g. "npm: express@<4.20.0", "AWS IAM", "MongoDB driver").
-- Action: concrete next step in ≤12 words (e.g. "Pin express ≥4.20.0 in backend/package.json", "Rotate AWS access keys issued before YYYY-MM-DD", "Audit `npm ls <pkg>` across repos").
+- In our repos: the shortest possible hit summary (e.g. "backend@7.5.4, crypto-backend@7.5.3" or "no match"). If multiple repos hit, list them comma-separated; if too many to fit, write "N repos — see detail".
+- Action: concrete next step in ≤12 words pinned to a specific file path when possible (e.g. "Pin protobufjs ≥7.5.5 in backend/package.json", "Rotate AWS keys issued before YYYY-MM-DD").
 
-**5b. Detail blocks.** After the table, one block per finding in the same order. Separate blocks with a horizontal rule (`---`) so each finding is visually distinct. Use this structure, keeping each bullet on its own line:
+**6b. Detail blocks.** After the table, one block per finding in the same order. Separate blocks with a horizontal rule (`---`) so each finding is visually distinct. Use this structure, keeping each bullet on its own line:
 
 ```
 ### {index}. {CVE / Name} — {Severity}
 
 - **Affects:** {specific stack item(s)}
+- **In our repos:** {concrete hits from step 5, with file paths and resolved versions; or `No direct or transitive match found in <N> repos checked.`}
 - **Published:** {date, or `date?`}
 - **Source:** [{primary source name}]({url}) · [{secondary, if any}]({url})
 
 **What it is.** One sentence describing the vulnerability in plain terms.
 
-**Why it matters to us.** One sentence tying it to our stack — which service, which dep, which blast radius.
+**Why it matters to us.** One sentence tying it to our stack — which service, which dep, which blast radius. Reference the specific repo(s) that hit from the `In our repos` line.
 
 **Attacker capability.** One sentence on what exploitation gets them (RCE, data exfil, token theft, etc.).
 
 **Action.** The same concrete next step from the table, expanded to one sentence if useful.
+
+**Local evidence.**
+```{language}
+$ {exact read-only command we ran}
+{verbatim trimmed output}
+```
 ```
 
 Rules for the detail blocks:
@@ -157,45 +188,49 @@ Rules for the detail blocks:
 - Never merge the four labeled paragraphs into one run-on line. Each gets its own line with a blank line before and after.
 - No padding sentences, no "it is important to note that", no best-practice lectures. If a section would be empty or obvious, drop it.
 - Every CVE/incident name in both the table and the detail heading is a markdown hyperlink to its primary source.
+- The `In our repos` line is mandatory. If step 5 found nothing, say so explicitly with the repo count — never omit the line.
+- The `Local evidence` fenced block is mandatory whenever step 5 returned any output for this finding (hit or no-hit). Use a `$ ` prompt prefix for each command and follow it with the verbatim trimmed output. Cap at ~20 lines per finding; if more, show the most diagnostic 20 and end with `# {N} more lines elided`. For no-hit findings, show the command that returned empty (so the reader knows we actually looked).
 
-**5c. Suggested next commands.** A single fenced `bash` block listing exact commands the user can run (e.g. `npm audit`, `npm ls <pkg>`, `grep -r <indicator>`). One command per line, with a `# {finding index}: {short intent}` comment above each so the user knows which finding it maps to.
+**6c. Suggested next commands.** A single fenced `bash` block listing *remediation* commands — things the skill deliberately did **not** run because they mutate state, install packages, hit the network, or affect production (e.g. `pnpm install`, `pnpm.overrides` edits, `gh auth refresh`, AWS key rotation). The read-only investigation commands already ran in step 5 and their output lives in each finding's `Local evidence` block — do not duplicate them here. One command per line, with a `# {finding index}: {short intent}` comment above each. When step 5 found a hit, target the exact repo path (e.g. `(cd backend && pnpm install)`), not a generic placeholder.
 
-**5d. Also worth a glance.** A final section titled `## Also worth a glance` listing items that did not clear the score ≥ 7 bar but could still be interesting: tangential to our stack, partially corroborated, or a slow-burn supply-chain story that may matter later. One line per item, up to 8 items total:
+**6d. Also worth a glance.** A final section titled `## Also worth a glance` listing items that did not clear the score ≥ 7 bar but could still be interesting: tangential to our stack, partially corroborated, or a slow-burn supply-chain story that may matter later. Also include items moved here by step 5e (relevant on paper, but no local usage). One line per item, up to 8 items total:
 
 ```
 - [{CVE / Name}]({url}) — {≤15 words on what it is and why it's borderline} _(score {n}, {reason it was down-ranked})_
 ```
 
-Pull candidates from items dropped in step 3c / 4 for score reasons only. Do not include items hard-dropped by the 3b stack pre-filter (Windows-only, PHP/WordPress, ICS, etc.); those are noise. If nothing qualifies, omit the section entirely; do not emit an empty header.
+Pull candidates from items dropped in step 3c / 4 for score reasons only, plus items moved here by step 5e. Do not include items hard-dropped by the 3b stack pre-filter (Windows-only, PHP/WordPress, ICS, etc.); those are noise. If nothing qualifies, omit the section entirely; do not emit an empty header.
 
-**5e. Empty report.** If nothing survives step 4 and nothing qualifies for 5d, say exactly: `No high-signal threats in window. Next scan recommended in 12h.` with no table or detail blocks. If the main report is empty but 5d has items, keep 5d and prepend a single line: `No items cleared the high-signal bar, but these may be worth a glance:`.
+**6e. Empty report.** If nothing survives step 4 and nothing qualifies for 6d, say exactly: `No high-signal threats in window. Next scan recommended in 12h.` with no table or detail blocks. If the main report is empty but 6d has items, keep 6d and prepend a single line: `No items cleared the high-signal bar, but these may be worth a glance:`.
 
-### 6. Save report files
+### 7. Save report files
 
 After outputting the report to the user, write both a markdown and an HTML file using the `Write` tool. Use `date -u +%Y-%m-%d_%H-%M-%S` to obtain the timestamp at write time. Write both files in parallel.
 
-**6a. Markdown file** — `./YYYY-MM-DD_HH-MM-SS_vuln-scan.md`
+**7a. Markdown file** — `./YYYY-MM-DD_HH-MM-SS_vuln-scan.md`
 
-- Content: the report as shown to the user (ranked table, source links, suggested commands)
+- Content: the report as shown to the user (ranked table, In-our-repos column, detail blocks **including the `Local evidence` fenced block for every finding where step 5 captured output**, suggested remediation commands, also-worth-a-glance section).
 - Every CVE / incident name in the table must be a markdown hyperlink to its primary source. Do not omit links.
-- Add a header line: `# Vuln Scan — YYYY-MM-DD HH:MM:SS UTC` (same timestamp, spaces/colons for readability) and a `**Window:** Xd | **Stack:** Node/TS/MongoDB/npm/AWS/crypto` metadata line before the table. Example header: `# Vuln Scan — 2026-04-20 14:07:33 UTC`.
+- Add a header line: `# Vuln Scan — YYYY-MM-DD HH:MM:SS UTC` (same timestamp, spaces/colons for readability) and a `**Window:** Xd | **Stack:** Node/TS/MongoDB/npm/AWS/crypto | **Repos checked:** {comma-separated list from step 5a}` metadata line before the table. Example header: `# Vuln Scan — 2026-04-20 14:07:33 UTC`.
 
-**6b. HTML file** — `~./YYYY-MM-DD_HH-MM-SS_vuln-scan.html`
+**7b. HTML file** — `./YYYY-MM-DD_HH-MM-SS_vuln-scan.html`
 
 Write a single self-contained HTML file with:
 - Inline CSS only (no external dependencies)
 - Dark background (`#0d1117`), GitHub-like aesthetic
 - Clean sans-serif font (system-ui stack)
-- A sticky header with scan title, timestamp, and window/stack metadata
-- The ranked summary table rendered as an HTML `<table>` with hover rows and severity badges
+- A sticky header with scan title, timestamp, window, stack, and repos-checked metadata
+- The ranked summary table rendered as an HTML `<table>` with hover rows and severity badges, including the `In our repos` column
 - Severity badge colors:
   - Critical: red (`#da3633` bg, `#ffc1be` text)
   - High: orange (`#9e4a01` bg, `#ffa657` text)
 - Detail blocks as styled `<article>` elements, each separated visually, containing:
   - `<h3>` heading with CVE/name linking to primary source
+  - Labeled rows for `Affects`, `In our repos`, `Published`, `Sources`
   - Labeled paragraphs (**What it is**, **Why it matters to us**, **Attacker capability**, **Action**) each in its own `<p>`
+  - A **`Local evidence`** `<pre><code>` block rendering the verbatim command + output captured in step 5; styled like a terminal (slightly inset, mono font, `$` prompt prefix highlighted)
   - Source links as `<a>` tags
-- Suggested commands in a styled `<pre><code>` block with a dark inset background
+- Suggested remediation commands in a styled `<pre><code>` block with a dark inset background (these are the step 6c commands, not the already-run investigation ones)
 - "Also worth a glance" as a final `<section>` with a muted header and list items, if any findings qualify; omit entirely if none
 - Smooth hover transitions on table rows and article cards
 - Responsive layout (max-width 960px, centered)
