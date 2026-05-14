@@ -11,12 +11,21 @@ th, td { padding: 4px 10px; text-align: left; border-bottom: 1px solid #8884; }
 th { background: #8881; }
 td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
 code, .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.95em; }
+.priority { margin: 0.5rem 0 1.5rem; padding: 0.8rem 1rem; background: #f9a8261a; border-left: 3px solid #f9a826; border-radius: 4px; }
+.priority h2 { margin-top: 0; }
+.priority .item { margin: 0.6rem 0; }
+.priority .reason { color: #888; font-size: 0.9em; display: block; margin: 0.1rem 0 0.2rem; }
+.priority .tag { display: inline-block; font-size: 0.75em; font-weight: 600; padding: 1px 6px; border-radius: 3px; background: #f9a826; color: #000; margin-right: 0.4rem; vertical-align: 1px; }
+.priority .rollup { color: #666; font-size: 0.9em; margin-top: 0.8rem; }
 .cluster { margin: 0.5rem 0 1rem; padding: 0.5rem 0.8rem; background: #8881; border-radius: 6px; }
 .cluster h3 { margin: 0 0 0.4rem; font-size: 1em; }
-.row { display: grid; grid-template-columns: 1fr 200px 1fr auto; gap: 0.8rem; padding: 2px 0; }
+.row { display: grid; grid-template-columns: 1fr 200px 1fr auto; gap: 0.8rem; padding: 2px 0; align-items: baseline; }
 .row .tech { color: #888; font-size: 0.9em; }
 .mx { color: #b04; font-weight: 600; font-size: 0.85em; }
-.transition { padding: 2px 0; }
+.links { font-size: 0.85em; margin: 0 0 0.5rem 0; padding-left: 0; color: #888; }
+.links a { margin-right: 0.6rem; text-decoration: none; }
+.links a:hover { text-decoration: underline; }
+.transition { padding: 4px 0; }
 .transition .arrow { color: #888; }
 .transition .new { font-weight: 600; }
 .notes { color: #666; font-size: 0.9em; border-top: 1px solid #8884; padding-top: 1rem; margin-top: 2rem; }
@@ -34,25 +43,73 @@ code, .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-
 <tr><td>Lookup errors (retry next run)</td><td class="num">{{STATS_ERRORS}}</td></tr>
 </table>
 
+<div class="priority">
+<h2>Recommended next steps</h2>
+{{PRIORITY_BLOCK}}
+</div>
+<!-- PRIORITY_BLOCK: one short headline <p> followed by up to 5 priority items
+     and (optionally) a rollup line for cluster members not enumerated.
+
+     Headline:
+       <p><strong>{N} high-priority items this run.</strong></p>
+
+     Per item (cap 5; ordered by the priority rubric in report_template.md):
+       <div class="item">
+         <span class="tag">{Fresh registration | Singleton + MX | Singleton | Cluster + MX}</span>
+         <code>{candidate}</code> → <code>{ip}</code>
+         <span class="tech">({technique})</span>
+         <span class="mx">{[MX] or empty}</span>
+         <span class="reason">{one-line reason / recommended next action}</span>
+         <span class="links">
+           <a href="https://{candidate}" target="_blank" rel="noopener noreferrer">visit</a>
+           <a href="https://crt.sh/?q={urlenc:candidate}" target="_blank" rel="noopener noreferrer">crt.sh</a>
+           <a href="https://www.virustotal.com/gui/domain/{urlenc:candidate}/detection" target="_blank" rel="noopener noreferrer">VT</a>
+           <a href="https://urlscan.io/domain/{urlenc:candidate}" target="_blank" rel="noopener noreferrer">urlscan</a>
+           <a href="https://who.is/whois/{urlenc:candidate}" target="_blank" rel="noopener noreferrer">whois</a>
+         </span>
+       </div>
+
+     Rollup (only if cluster members weren't enumerated above):
+       <div class="rollup">{M} other resolving candidates sit in parking-provider clusters (see below).</div>
+
+     If zero resolving candidates: <p><em>No resolving candidates this run — nothing to action.</em></p>
+-->
+
 <h2>Resolving candidates ({{STATS_RESOLVING}})</h2>
-<p>Grouped by <code>/24</code> so parking-provider clusters collapse into a single block. <span class="mx">[MX]</span> means the name can receive email.</p>
+<p>Grouped by <code>/24</code> so parking-provider clusters collapse into a single block. <span class="mx">[MX]</span> means the name can receive email. Each row carries quick-test links — click through to triage.</p>
 {{RESOLVING_BLOCK}}
 <!-- RESOLVING_BLOCK shape per cluster:
   Singleton:
     <div class="row"><code>{candidate}</code><code>{ip}</code><span class="tech">{technique}</span><span class="mx">{[MX] or empty}</span></div>
+    <div class="links">
+      <a href="https://{candidate}" target="_blank" rel="noopener noreferrer">visit</a>
+      <a href="https://crt.sh/?q={urlenc:candidate}" target="_blank" rel="noopener noreferrer">crt.sh</a>
+      <a href="https://www.virustotal.com/gui/domain/{urlenc:candidate}/detection" target="_blank" rel="noopener noreferrer">VT</a>
+      <a href="https://urlscan.io/domain/{urlenc:candidate}" target="_blank" rel="noopener noreferrer">urlscan</a>
+      <a href="https://who.is/whois/{urlenc:candidate}" target="_blank" rel="noopener noreferrer">whois</a>
+    </div>
   Multi:
     <div class="cluster"><h3>Cluster {ip}/24 — {n} names on shared infrastructure</h3>
       <div class="row">…</div>
+      <div class="links">…same five links…</div>
       <div class="row">…</div>
+      <div class="links">…</div>
     </div>
   If no resolving rows: <p><em>None.</em></p>
+
+  URL-encode `candidate` for href attributes; HTML-escape everywhere it appears as text.
 -->
 
 <h2>Status transitions this run ({{N_TRANSITIONS}})</h2>
 {{TRANSITIONS_BLOCK}}
 <!-- TRANSITIONS_BLOCK: omit the whole <h2> + this block when N_TRANSITIONS == 0.
-     Otherwise one line per transition:
-       <div class="transition"><code>{candidate}</code>: {prev or "new"} <span class="arrow">→</span> <span class="new">{status}</span> <span class="mx">{[MX] or empty}</span></div>
+     Otherwise one transition per row:
+       <div class="transition">
+         <code>{candidate}</code>: {prev or "new"} <span class="arrow">→</span>
+         <span class="new">{status}</span> <span class="mx">{[MX] or empty}</span>
+       </div>
+       <div class="links">…five quick-test links…</div>
+     Only emit the .links row when the new status is `resolves`.
 -->
 
 <h2>By technique</h2>
