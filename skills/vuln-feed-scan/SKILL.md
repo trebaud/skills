@@ -148,11 +148,29 @@ For each finding, capture: the repo(s) that hit, the file(s) and line(s), the ac
 
 **5e. Hard-drop findings the local check rules out.** If a finding's only path to relevance is "we might use X" and grep proves we don't (e.g. Jenkins plugin compromise + no Jenkins anywhere), move the finding from the main report to *Also worth a glance* with the reason `no usage in local repos`. Don't silently delete it.
 
-### 6. Report
+### 6. Generate an IoC scan script (conditional)
+
+For findings where the source materials publish concrete **Indicators of Compromise** — malicious package versions, file hashes (SHA256/SHA1/MD5), suspicious file paths or filenames, post-install hook signatures, exfil domains/URLs, IPs, npm publish accounts, distinctive strings in malicious code — write a single bash script that scans the working directory and local system for those exact indicators.
+
+**Hard rules:**
+
+- **Extract verbatim.** Every IoC in the script must be quotable from a fetched source (primary advisory, vendor blog, GitHub Security Advisory, CISA KEV entry, etc.). Cite the source URL in a comment above each block. Do **not** infer, extrapolate, generate plausible-looking hashes/domains, or pattern-complete from partial data. If a source lists 3 hashes, the script checks 3 — not 4.
+- **Skip the step entirely if no finding has published IoCs.** Most CVEs ship with affected-version ranges only; those are already covered by step 5 and don't need a separate script. The trigger for this step is concrete forensic artefacts (hashes, domains, distinctive filenames, malicious code snippets), typically from supply-chain incidents, malware campaigns, or post-incident vendor write-ups.
+- **Read-only.** The script must only `grep`, `find`, `shasum`/`sha256sum`, `ls`, `stat`, `cat`, `pgrep`, `lsof`, `netstat`/`ss`, or equivalent. It must never modify files, install anything, hit the network with credentials, or alter system state. macOS-compatible (BSD `find`/`stat`, `shasum -a 256`, not `sha256sum`) since the host is darwin.
+- **Group by finding.** Use a clearly delimited section per finding with a header comment naming the CVE/incident and the source URL. Each section prints `[HIT]` or `[clean]` lines so output is greppable.
+- **Final summary.** End with a count of `[HIT]` lines so the user instantly knows whether anything matched.
+
+**Script path:** `./YYYY-MM-DD_HH-MM-SS_ioc-scan.sh` (same timestamp as the report files in step 7). Make it executable (`chmod +x`). Do not run it — just write it and tell the user the path.
+
+If you skip this step because no finding had concrete IoCs, say so in one line in the report (`No IoC script generated — no source published concrete indicators this run.`) so the user knows the check was considered.
+
+### 7. Report
 
 Output the findings to the user. The report is the only thing they read — format it for scanning, most-urgent first, with whitespace between findings. The exact templates (ranked table columns, detail-block structure, remediation-commands block, "Also worth a glance" section, empty-report sentinel) live in **`references/report-format.md`** under "On-screen report". Read that file before rendering the report.
 
-### 7. Save report files
+If step 6 produced a script, reference its path in the report so the user can find it.
+
+### 8. Save report files
 
 After outputting the report, write a markdown file and a self-contained HTML file in parallel with `Write`. Use `date -u +%Y-%m-%d_%H-%M-%S` to obtain the timestamp at write time.
 
