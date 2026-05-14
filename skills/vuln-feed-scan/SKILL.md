@@ -150,104 +150,24 @@ For each finding, capture: the repo(s) that hit, the file(s) and line(s), the ac
 
 ### 6. Report
 
-The report is the only thing the user reads. Format it for scanning, with plenty of whitespace between findings.
-
-**6a. Ranked table.** Most urgent first. One row per finding:
-
-```
-| # | Severity | CVE / Name | Affects | In our repos | Published | Action |
-```
-
-- `#` is a 1-based index matching the detail blocks below, so the user can jump between them.
-- Severity: Critical / High only. Anything lower does not belong in the report.
-- Affects: the specific stack item it hits (e.g. "npm: express@<4.20.0", "AWS IAM", "MongoDB driver").
-- In our repos: the shortest possible hit summary (e.g. "backend@7.5.4, crypto-backend@7.5.3" or "no match"). If multiple repos hit, list them comma-separated; if too many to fit, write "N repos — see detail".
-- Action: concrete next step in ≤12 words pinned to a specific file path when possible (e.g. "Pin protobufjs ≥7.5.5 in backend/package.json", "Rotate AWS keys issued before YYYY-MM-DD").
-
-**6b. Detail blocks.** After the table, one block per finding in the same order. Separate blocks with a horizontal rule (`---`) so each finding is visually distinct. Use this structure, keeping each bullet on its own line:
-
-```
-### {index}. {CVE / Name} — {Severity}
-
-- **Affects:** {specific stack item(s)}
-- **In our repos:** {concrete hits from step 5, with file paths and resolved versions; or `No direct or transitive match found in <N> repos checked.`}
-- **Published:** {date, or `date?`}
-- **Source:** [{primary source name}]({url}) · [{secondary, if any}]({url})
-
-**What it is.** One sentence describing the vulnerability in plain terms.
-
-**Why it matters to us.** One sentence tying it to our stack — which service, which dep, which blast radius. Reference the specific repo(s) that hit from the `In our repos` line.
-
-**Attacker capability.** One sentence on what exploitation gets them (RCE, data exfil, token theft, etc.).
-
-**Action.** The same concrete next step from the table, expanded to one sentence if useful.
-
-**Local evidence.**
-```{language}
-$ {exact read-only command we ran}
-{verbatim trimmed output}
-```
-```
-
-Rules for the detail blocks:
-
-- Never merge the four labeled paragraphs into one run-on line. Each gets its own line with a blank line before and after.
-- No padding sentences, no "it is important to note that", no best-practice lectures. If a section would be empty or obvious, drop it.
-- Every CVE/incident name in both the table and the detail heading is a markdown hyperlink to its primary source.
-- The `In our repos` line is mandatory. If step 5 found nothing, say so explicitly with the repo count — never omit the line.
-- The `Local evidence` fenced block is mandatory whenever step 5 returned any output for this finding (hit or no-hit). Use a `$ ` prompt prefix for each command and follow it with the verbatim trimmed output. Cap at ~20 lines per finding; if more, show the most diagnostic 20 and end with `# {N} more lines elided`. For no-hit findings, show the command that returned empty (so the reader knows we actually looked).
-
-**6c. Suggested next commands.** A single fenced `bash` block listing *remediation* commands — things the skill deliberately did **not** run because they mutate state, install packages, hit the network, or affect production (e.g. `pnpm install`, `pnpm.overrides` edits, `gh auth refresh`, AWS key rotation). The read-only investigation commands already ran in step 5 and their output lives in each finding's `Local evidence` block — do not duplicate them here. One command per line, with a `# {finding index}: {short intent}` comment above each. When step 5 found a hit, target the exact repo path (e.g. `(cd backend && pnpm install)`), not a generic placeholder.
-
-**6d. Also worth a glance.** A final section titled `## Also worth a glance` listing items that did not clear the score ≥ 7 bar but could still be interesting: tangential to our stack, partially corroborated, or a slow-burn supply-chain story that may matter later. Also include items moved here by step 5e (relevant on paper, but no local usage). One line per item, up to 8 items total:
-
-```
-- [{CVE / Name}]({url}) — {≤15 words on what it is and why it's borderline} _(score {n}, {reason it was down-ranked})_
-```
-
-Pull candidates from items dropped in step 3c / 4 for score reasons only, plus items moved here by step 5e. Do not include items hard-dropped by the 3b stack pre-filter (Windows-only, PHP/WordPress, ICS, etc.); those are noise. If nothing qualifies, omit the section entirely; do not emit an empty header.
-
-**6e. Empty report.** If nothing survives step 4 and nothing qualifies for 6d, say exactly: `No high-signal threats in window. Next scan recommended in 12h.` with no table or detail blocks. If the main report is empty but 6d has items, keep 6d and prepend a single line: `No items cleared the high-signal bar, but these may be worth a glance:`.
+Output the findings to the user. The report is the only thing they read — format it for scanning, most-urgent first, with whitespace between findings. The exact templates (ranked table columns, detail-block structure, remediation-commands block, "Also worth a glance" section, empty-report sentinel) live in **`references/report-format.md`** under "On-screen report". Read that file before rendering the report.
 
 ### 7. Save report files
 
-After outputting the report to the user, write both a markdown and an HTML file using the `Write` tool. Use `date -u +%Y-%m-%d_%H-%M-%S` to obtain the timestamp at write time. Write both files in parallel.
+After outputting the report, write a markdown file and a self-contained HTML file in parallel with `Write`. Use `date -u +%Y-%m-%d_%H-%M-%S` to obtain the timestamp at write time.
 
-**7a. Markdown file** — `./YYYY-MM-DD_HH-MM-SS_vuln-scan.md`
+- Markdown path: `./YYYY-MM-DD_HH-MM-SS_vuln-scan.md`
+- HTML path: `./YYYY-MM-DD_HH-MM-SS_vuln-scan.html`
 
-- Content: the report as shown to the user (ranked table, In-our-repos column, detail blocks **including the `Local evidence` fenced block for every finding where step 5 captured output**, suggested remediation commands, also-worth-a-glance section).
-- Every CVE / incident name in the table must be a markdown hyperlink to its primary source. Do not omit links.
-- Add a header line: `# Vuln Scan — YYYY-MM-DD HH:MM:SS UTC` (same timestamp, spaces/colons for readability) and a `**Window:** Xd | **Stack:** Node/TS/MongoDB/npm/AWS/crypto | **Repos checked:** {comma-separated list from step 5a}` metadata line before the table. Example header: `# Vuln Scan — 2026-04-20 14:07:33 UTC`.
-
-**7b. HTML file** — `./YYYY-MM-DD_HH-MM-SS_vuln-scan.html`
-
-Write a single self-contained HTML file with:
-- Inline CSS only (no external dependencies)
-- Dark background (`#0d1117`), GitHub-like aesthetic
-- Clean sans-serif font (system-ui stack)
-- A sticky header with scan title, timestamp, window, stack, and repos-checked metadata
-- The ranked summary table rendered as an HTML `<table>` with hover rows and severity badges, including the `In our repos` column
-- Severity badge colors:
-  - Critical: red (`#da3633` bg, `#ffc1be` text)
-  - High: orange (`#9e4a01` bg, `#ffa657` text)
-- Detail blocks as styled `<article>` elements, each separated visually, containing:
-  - `<h3>` heading with CVE/name linking to primary source
-  - Labeled rows for `Affects`, `In our repos`, `Published`, `Sources`
-  - Labeled paragraphs (**What it is**, **Why it matters to us**, **Attacker capability**, **Action**) each in its own `<p>`
-  - A **`Local evidence`** `<pre><code>` block rendering the verbatim command + output captured in step 5; styled like a terminal (slightly inset, mono font, `$` prompt prefix highlighted)
-  - Source links as `<a>` tags
-- Suggested remediation commands in a styled `<pre><code>` block with a dark inset background (these are the step 6c commands, not the already-run investigation ones)
-- "Also worth a glance" as a final `<section>` with a muted header and list items, if any findings qualify; omit entirely if none
-- Smooth hover transitions on table rows and article cards
-- Responsive layout (max-width 960px, centered)
-- The HTML file must be fully self-contained (no external CSS/JS/fonts)
+Content and styling specs for both files are in **`references/report-format.md`** under "Saved markdown file" and "Saved HTML file" — header format, metadata line, severity badge colors, layout, etc.
 
 After writing the HTML file, open it:
+
 ```bash
 open ./YYYY-MM-DD_HH-MM-SS_vuln-scan.html
 ```
 
-Confirm to the user with a single line listing both paths: `Reports saved to ./<filename>.md and <filename>.html`.
+Confirm with a single line: `Reports saved to ./<filename>.md and <filename>.html`.
 
 ## Rules
 
