@@ -96,7 +96,6 @@ One entry per candidate. When a re-check flips status, `status` becomes the new 
 | `unregistered` | Authoritative DNS returned NXDOMAIN — the name does not exist. In practice this almost always means the domain is available to register; a `unregistered → resolves` transition is the strongest fresh-squatter signal. |
 | `error` | Lookup failed for some other reason (SERVFAIL, timeout, network issue). Status is unknown; the row is retried on the next run. |
 
-Older memory files using the legacy value `nxdomain` are auto-migrated to `unregistered` the first time the helper sees them.
 
 ## Operational caveats
 
