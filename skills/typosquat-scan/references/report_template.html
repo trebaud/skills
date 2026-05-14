@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<title>Typosquat scan: {{TARGET}}</title>
+<style>
+:root { color-scheme: light dark; }
+body { font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; max-width: 960px; margin: 2rem auto; padding: 0 1rem; }
+h1 { margin-bottom: 0.2rem; }
+.meta { color: #888; margin-bottom: 1.5rem; font-size: 0.9em; }
+table { border-collapse: collapse; margin: 0.5rem 0 1.5rem; }
+th, td { padding: 4px 10px; text-align: left; border-bottom: 1px solid #8884; }
+th { background: #8881; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+code, .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.95em; }
+.cluster { margin: 0.5rem 0 1rem; padding: 0.5rem 0.8rem; background: #8881; border-radius: 6px; }
+.cluster h3 { margin: 0 0 0.4rem; font-size: 1em; }
+.row { display: grid; grid-template-columns: 1fr 200px 1fr auto; gap: 0.8rem; padding: 2px 0; }
+.row .tech { color: #888; font-size: 0.9em; }
+.mx { color: #b04; font-weight: 600; font-size: 0.85em; }
+.transition { padding: 2px 0; }
+.transition .arrow { color: #888; }
+.transition .new { font-weight: 600; }
+.notes { color: #666; font-size: 0.9em; border-top: 1px solid #8884; padding-top: 1rem; margin-top: 2rem; }
+.notes li { margin: 0.3rem 0; }
+</style></head><body>
+<h1>Typosquat scan: <code>{{TARGET}}</code></h1>
+<div class="meta">Generated {{LAST_RUN}} — run #{{RUN_COUNT}}</div>
+
+<h2>Summary</h2>
+<table>
+<tr><th>Metric</th><th class="num">Count</th></tr>
+<tr><td>Candidates tracked</td><td class="num">{{STATS_TOTAL}}</td></tr>
+<tr><td>Resolving (registered, DNS active)</td><td class="num">{{STATS_RESOLVING}}</td></tr>
+<tr><td>Unregistered (NXDOMAIN — available)</td><td class="num">{{STATS_UNREGISTERED}}</td></tr>
+<tr><td>Lookup errors (retry next run)</td><td class="num">{{STATS_ERRORS}}</td></tr>
+</table>
+
+<h2>Resolving candidates ({{STATS_RESOLVING}})</h2>
+<p>Grouped by <code>/24</code> so parking-provider clusters collapse into a single block. <span class="mx">[MX]</span> means the name can receive email.</p>
+{{RESOLVING_BLOCK}}
+<!-- RESOLVING_BLOCK shape per cluster:
+  Singleton:
+    <div class="row"><code>{candidate}</code><code>{ip}</code><span class="tech">{technique}</span><span class="mx">{[MX] or empty}</span></div>
+  Multi:
+    <div class="cluster"><h3>Cluster {ip}/24 — {n} names on shared infrastructure</h3>
+      <div class="row">…</div>
+      <div class="row">…</div>
+    </div>
+  If no resolving rows: <p><em>None.</em></p>
+-->
+
+<h2>Status transitions this run ({{N_TRANSITIONS}})</h2>
+{{TRANSITIONS_BLOCK}}
+<!-- TRANSITIONS_BLOCK: omit the whole <h2> + this block when N_TRANSITIONS == 0.
+     Otherwise one line per transition:
+       <div class="transition"><code>{candidate}</code>: {prev or "new"} <span class="arrow">→</span> <span class="new">{status}</span> <span class="mx">{[MX] or empty}</span></div>
+-->
+
+<h2>By technique</h2>
+<table>
+<tr><th>Technique</th><th class="num">Total</th><th class="num">Resolving</th><th class="num">Unregistered</th><th class="num">Errors</th></tr>
+{{TECHNIQUE_ROWS}}
+<!-- one <tr><td>tech</td><td class="num">N</td>…</tr> per technique, sorted resolving desc / total desc / name asc -->
+</table>
+
+<div class="notes"><strong>Notes</strong>
+<ul>
+<li><code>resolves</code> ≠ active squatter. Most resolving lookalikes are registrar parking pages or CDN catch-alls. Triage out-of-band (HTTP fetch, TLS cert SAN, WHOIS, reverse DNS, CT-log history).</li>
+<li><span class="mx">[MX]</span> on a resolving candidate is a stronger phishing/mail-interception signal than HTTP-only.</li>
+<li>The system resolver was used. Behind split-horizon DNS, results may differ from an external view.</li>
+</ul></div>
+</body></html>
