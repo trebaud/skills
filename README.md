@@ -5,7 +5,8 @@ A collection of agent skills I use for work.
 ## Installation
 
 ```bash
-git clone https://github.com/moose/agents-config.git ~/.agents
+mkdir -p ~/.agents
+git clone https://github.com/trebaud/skills.git ~/.agents
 ```
 
 Then create symbolic links to make skills available to your agents:
