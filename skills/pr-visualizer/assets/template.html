@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<!--
+  PR VISUALIZER TEMPLATE
+  ======================
+  1. Fill the <title>, the <nav> links, and the <main> sections.
+  2. Each nav link href="#id" must match a <section id="id">.
+  3. Copy section/component markup from the COMPONENTS LIBRARY block at the bottom
+     of <body> (it lives inside a comment so it never renders). Paste into <main>.
+  4. Keep it self-contained: no external CSS/JS/fonts/images. Must open offline.
+  5. Delete this comment and the COMPONENTS LIBRARY comment before shipping (optional).
+-->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{PR TITLE}} — change visualization</title>
+<style>
+  :root{
+    --bg:#0f1117; --bg2:#161922; --panel:#1c2030; --panel2:#232838;
+    --line:#2c3245; --txt:#e7eaf3; --muted:#9aa3bd; --faint:#6b7494;
+    --indigo:#7c8cff; --indigo2:#5566f0; --violet:#b98bff;
+    --green:#46d6a0; --amber:#ffb454; --red:#ff6b81; --cyan:#5bd6e6;
+    --radius:14px; --maxw:1120px;
+    --mono:'SFMono-Regular',ui-monospace,Menlo,Consolas,monospace;
+    --sans:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:radial-gradient(1200px 600px at 75% -10%,#1d2236 0%,var(--bg) 55%);color:var(--txt);font-family:var(--sans);line-height:1.55;-webkit-font-smoothing:antialiased}
+  a{color:var(--indigo);text-decoration:none}
+  code{font-family:var(--mono);font-size:.86em;background:#0c0e15;border:1px solid var(--line);padding:.1em .4em;border-radius:6px;color:#cdd6f4}
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 24px}
+
+  /* nav */
+  nav{position:sticky;top:0;z-index:50;backdrop-filter:blur(12px);background:rgba(15,17,23,.78);border-bottom:1px solid var(--line)}
+  nav .wrap{display:flex;align-items:center;gap:8px;height:56px;flex-wrap:wrap}
+  nav .brand{font-weight:700;letter-spacing:.2px;margin-right:auto;display:flex;align-items:center;gap:10px}
+  nav .brand .dot{width:10px;height:10px;border-radius:50%;background:var(--indigo);box-shadow:0 0 14px var(--indigo)}
+  nav a.link{color:var(--muted);font-size:13px;padding:6px 10px;border-radius:8px;transition:.15s}
+  nav a.link:hover{color:var(--txt);background:var(--panel)}
+
+  /* hero */
+  header.hero{padding:64px 0 28px}
+  .kick{color:var(--violet);font-weight:600;letter-spacing:.14em;text-transform:uppercase;font-size:12px}
+  h1{font-size:42px;line-height:1.1;margin:10px 0 14px;font-weight:800;background:linear-gradient(120deg,#fff,#aeb8ff);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .lede{color:var(--muted);font-size:17px;max-width:760px}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:22px}
+  .chip{font-size:12.5px;font-weight:600;padding:6px 12px;border-radius:999px;border:1px solid var(--line);background:var(--panel);color:var(--txt)}
+  .chip b{color:var(--indigo)}
+  .chip.amber{border-color:#5a431f;background:#241b0e;color:var(--amber)}
+  .chip.green{border-color:#1f4a39;background:#0e211a;color:var(--green)}
+
+  section{padding:40px 0;border-top:1px solid var(--line)}
+  h2{font-size:13px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint);margin:0 0 6px}
+  .h2title{font-size:26px;font-weight:750;margin:0 0 18px}
+  .sub{color:var(--muted);max-width:780px;margin:-8px 0 22px}
+
+  .grid{display:grid;gap:16px}
+  .g2{grid-template-columns:1fr 1fr}
+  .g3{grid-template-columns:repeat(3,1fr)}
+  @media(max-width:860px){.g2,.g3{grid-template-columns:1fr}}
+
+  .card{background:linear-gradient(180deg,var(--panel),var(--bg2));border:1px solid var(--line);border-radius:var(--radius);padding:18px}
+  .card h3{margin:0 0 8px;font-size:16px}
+  .card p{margin:0;color:var(--muted);font-size:14px}
+
+  /* problem/fix callout */
+  .callout{display:flex;gap:16px;align-items:flex-start;border:1px solid #5a2331;background:linear-gradient(180deg,#241420,#1a0f17);border-radius:var(--radius);padding:18px}
+  .callout .ic{font-size:24px;line-height:1}
+  .callout.fix{border-color:#1f4a39;background:linear-gradient(180deg,#0e211a,#0c1a15)}
+
+  /* flow diagram */
+  .flow{display:flex;align-items:stretch;gap:0;flex-wrap:wrap}
+  .node{flex:1;min-width:150px;background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:14px;position:relative}
+  .node .t{font-weight:700;font-size:14px;margin-bottom:4px}
+  .node .d{color:var(--muted);font-size:12.5px}
+  .node .tag{position:absolute;top:-10px;left:14px;font-size:10.5px;font-weight:700;letter-spacing:.08em;padding:2px 8px;border-radius:6px;text-transform:uppercase}
+  .arrow{display:flex;align-items:center;justify-content:center;color:var(--faint);font-size:22px;padding:0 6px;flex:0 0 auto}
+  @media(max-width:860px){.arrow{transform:rotate(90deg);width:100%;padding:6px 0}}
+  .tag.api{background:#1a2740;color:var(--cyan);border:1px solid #244}
+  .tag.db{background:#1d2a1f;color:var(--green);border:1px solid #2c5}
+  .tag.user{background:#2a2340;color:var(--violet);border:1px solid #534}
+
+  /* toggle */
+  .toggle{display:inline-flex;background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:4px;gap:4px;margin-bottom:18px}
+  .toggle button{border:0;background:transparent;color:var(--muted);font-weight:650;font-size:13px;padding:8px 16px;border-radius:999px;cursor:pointer;transition:.15s;font-family:inherit}
+  .toggle button.on{background:var(--indigo2);color:#fff;box-shadow:0 4px 14px rgba(85,102,240,.4)}
+  .branch{display:none}
+  .branch.show{display:block;animation:fade .25s ease}
+  @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  .verdict{margin-top:14px;padding:12px 16px;border-radius:12px;font-size:14px;font-weight:600}
+  .verdict.skip{background:#241b0e;border:1px solid #5a431f;color:var(--amber)}
+  .verdict.swap{background:#0e211a;border:1px solid #1f4a39;color:var(--green)}
+
+  /* file cards */
+  .files{display:grid;gap:10px}
+  .frow{display:grid;grid-template-columns:26px 1fr;gap:12px;align-items:start;background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:12px 14px}
+  .frow.crit{border-color:#5a431f;background:linear-gradient(180deg,#241b0e,#1b1509)}
+  .frow .badge{width:26px;height:26px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px}
+  .badge.new{background:#0e211a;color:var(--green);border:1px solid #1f4a39}
+  .badge.edit{background:#1a2740;color:var(--cyan);border:1px solid #234}
+  .badge.crit{background:#241b0e;color:var(--amber);border:1px solid #5a431f}
+  .frow .fp{font-family:var(--mono);font-size:13px;color:var(--txt);word-break:break-all}
+  .frow .fd{color:var(--muted);font-size:13px;margin-top:3px}
+  .pill{display:inline-block;font-size:10px;font-weight:800;letter-spacing:.06em;padding:2px 7px;border-radius:5px;margin-left:8px;vertical-align:middle}
+  .pill.crit{background:#5a431f;color:#ffd9a0}
+
+  /* schema */
+  .schema{font-family:var(--mono);font-size:13px;background:#0c0e15;border:1px solid var(--line);border-radius:12px;padding:16px;overflow:auto;white-space:pre}
+  .schema .k{color:var(--cyan)} .schema .c{color:var(--faint)} .schema .s{color:var(--green)} .schema .core{color:var(--amber);font-weight:700}
+
+  /* timeline */
+  .timeline{position:relative;margin-left:8px;padding-left:26px}
+  .timeline:before{content:"";position:absolute;left:6px;top:6px;bottom:6px;width:2px;background:linear-gradient(var(--indigo),transparent)}
+  .titem{position:relative;margin-bottom:18px}
+  .titem:before{content:"";position:absolute;left:-26px;top:4px;width:12px;height:12px;border-radius:50%;background:var(--indigo);box-shadow:0 0 0 4px rgba(124,140,255,.15)}
+  .titem .q{font-weight:700;font-size:14.5px}
+  .titem .a{color:var(--green);font-size:13.5px;margin-top:2px}
+  .titem .why{color:var(--muted);font-size:13px;margin-top:3px}
+
+  /* edge cases */
+  .edge{border:1px solid var(--line);background:var(--panel);border-radius:11px;padding:14px}
+  .edge .et{font-weight:700;font-size:14px;display:flex;align-items:center;gap:8px;margin-bottom:5px}
+  .edge .ed{color:var(--muted);font-size:13px}
+  .stat{font-size:11px;font-weight:800;padding:2px 8px;border-radius:6px}
+  .stat.ok{background:#0e211a;color:var(--green)} .stat.by{background:#241b0e;color:var(--amber)} .stat.note{background:#1a2740;color:var(--cyan)}
+
+  /* checklist */
+  ul.check{list-style:none;padding:0;margin:0;display:grid;gap:10px}
+  ul.check li{display:flex;gap:12px;background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:12px 14px;font-size:14px}
+  ul.check li .cb{color:var(--green);font-weight:800}
+  ul.check li code{font-size:12px}
+
+  footer{padding:40px 0 70px;color:var(--faint);font-size:13px;border-top:1px solid var(--line)}
+  .legend{display:flex;gap:18px;flex-wrap:wrap;margin-bottom:16px;font-size:12.5px;color:var(--muted)}
+  .legend span{display:inline-flex;align-items:center;gap:7px}
+  .sw{width:12px;height:12px;border-radius:4px;display:inline-block}
+</style>
+</head>
+<body>
+
+<nav><div class="wrap">
+  <div class="brand"><span class="dot"></span>{{SHORT TITLE}}</div>
+  <!-- one <a> per section, href must match a section id -->
+  <a class="link" href="#flow">Flow</a>
+  <a class="link" href="#files">Changes</a>
+  <a class="link" href="#verify">Verify</a>
+</div></nav>
+
+<header class="hero"><div class="wrap">
+  <div class="kick">{{REPO / AREA}}</div>
+  <h1>{{TITLE}}</h1>
+  <p class="lede">{{ONE-LINE SUMMARY OF WHAT THIS PR DOES AND WHY}}</p>
+  <div class="chips">
+    <span class="chip">{{scope chip}}</span>
+    <span class="chip green">{{positive chip}}</span>
+    <span class="chip amber">{{caveat chip}}</span>
+  </div>
+</div></header>
+
+<main>
+  <!-- ▼▼▼ BUILD SECTIONS HERE — copy markup from the COMPONENTS LIBRARY below ▼▼▼ -->
+
+</main>
+
+<footer><div class="wrap">
+  {{Provenance: PR #__ · branch __ → __ · generated from the diff. Optionally "planning artifact — no code written yet".}}
+</div></footer>
+
+<script>
+  // Generic toggle: each toggle group calls setBranch('<groupId>','<variant>').
+  // Branches are <div id="<groupId>-<variant>" class="branch">; buttons are id="<groupId>-btn-<variant>".
+  function setBranch(group, which){
+    document.querySelectorAll('[id^="'+group+'-"].branch').forEach(b=>{
+      b.classList.toggle('show', b.id === group+'-'+which);
+    });
+    document.querySelectorAll('[id^="'+group+'-btn-"]').forEach(btn=>{
+      btn.classList.toggle('on', btn.id === group+'-btn-'+which);
+    });
+  }
+  // Sticky-nav scroll-spy
+  const links=[...document.querySelectorAll('nav a.link')];
+  const map=Object.fromEntries(links.map(l=>[l.getAttribute('href').slice(1),l]));
+  const obs=new IntersectionObserver((es)=>{
+    es.forEach(e=>{ if(e.isIntersecting){ links.forEach(l=>{l.style.color='';l.style.background='';}); const a=map[e.target.id]; if(a){a.style.color='var(--txt)';a.style.background='var(--panel)';} }});
+  },{rootMargin:'-45% 0px -50% 0px'});
+  document.querySelectorAll('section[id]').forEach(s=>obs.observe(s));
+</script>
+
+<!-- ============================================================================
+COMPONENTS LIBRARY  —  copy what you need into <main>. This block never renders.
+
+== SECTION SHELL ==
+<section id="ID"><div class="wrap">
+  <h2>EYEBROW</h2>
+  <div class="h2title">Section heading</div>
+  <p class="sub">Optional one-line intro.</p>
+  ... section body ...
+</div></section>
+
+== PROBLEM → FIX (paired callout) ==
+<div class="grid g2">
+  <div class="callout"><div class="ic">⚠️</div><div>
+    <h3 style="margin:0 0 6px">The problem</h3>
+    <p style="margin:0;color:var(--muted);font-size:14px">What's wrong / risky today.</p>
+  </div></div>
+  <div class="callout fix"><div class="ic">✅</div><div>
+    <h3 style="margin:0 0 6px">The fix</h3>
+    <p style="margin:0;color:var(--muted);font-size:14px">How this PR resolves it.</p>
+  </div></div>
+</div>
+
+== FLOW DIAGRAM (repeat .node/.arrow; tag classes: api | db | user) ==
+<div class="flow">
+  <div class="node"><span class="tag user">trigger</span><div class="t">Step name</div><div class="d">What happens.</div></div>
+  <div class="arrow">→</div>
+  <div class="node"><span class="tag api">call</span><div class="t">Step name</div><div class="d">What happens.</div></div>
+  <div class="arrow">→</div>
+  <div class="node"><span class="tag db">persist</span><div class="t">Step name</div><div class="d">What happens.</div></div>
+</div>
+
+== INTERACTIVE TOGGLE (group id = "g1"; variants "a"/"b") ==
+<div class="toggle" role="tablist">
+  <button id="g1-btn-a" class="on" onclick="setBranch('g1','a')">Variant A</button>
+  <button id="g1-btn-b" onclick="setBranch('g1','b')">Variant B</button>
+</div>
+<div id="g1-a" class="branch show">
+  <div class="flow"> ...nodes... </div>
+  <div class="verdict swap">Outcome of variant A.</div>
+</div>
+<div id="g1-b" class="branch">
+  <div class="flow"> ...nodes... </div>
+  <div class="verdict skip">Outcome of variant B.</div>
+</div>
+
+== FILE CARDS (badge: new | edit | crit) ==
+<div class="legend">
+  <span><i class="sw" style="background:var(--green)"></i> new</span>
+  <span><i class="sw" style="background:var(--cyan)"></i> edited</span>
+  <span><i class="sw" style="background:var(--amber)"></i> critical</span>
+</div>
+<div class="files">
+  <div class="frow crit"><div class="badge crit">★</div><div>
+    <div class="fp">path/to/critical/file.ts <span class="pill crit">KEY CHANGE</span></div>
+    <div class="fd">Why this is the most important change.</div></div></div>
+  <div class="frow"><div class="badge new">+</div><div>
+    <div class="fp">path/to/new/file.ts</div><div class="fd">What it adds.</div></div></div>
+  <div class="frow"><div class="badge edit">~</div><div>
+    <div class="fp">path/to/edited/file.ts</div><div class="fd">What changed.</div></div></div>
+</div>
+
+== SCHEMA / MODEL (spans: k=type, s=string-literal, c=comment, core=highlight) ==
+<div class="schema">{
+  <span class="core">important_field</span>: <span class="k">String</span>,   <span class="c">// note</span>
+  status:           <span class="s">'A' | 'B'</span>,
+}</div>
+
+== EDGE CASE CARDS (stat: ok | by | note) ==
+<div class="grid g2">
+  <div class="edge"><div class="et">Edge case <span class="stat ok">resolved</span></div><div class="ed">How it's handled.</div></div>
+  <div class="edge"><div class="et">Edge case <span class="stat by">by design</span></div><div class="ed">Intended behavior.</div></div>
+</div>
+
+== DECISIONS TIMELINE ==
+<div class="timeline">
+  <div class="titem"><div class="q">Question / fork</div><div class="a">→ Decision.</div><div class="why">Why.</div></div>
+</div>
+
+== VERIFICATION CHECKLIST ==
+<ul class="check">
+  <li><span class="cb">✓</span><div><b>Test name</b> — what it asserts.</div></li>
+  <li><span class="cb">✓</span><div><b>Static checks</b> — <code>typecheck</code> · <code>lint</code> · CI.</div></li>
+</ul>
+
+============================================================================ -->
+</body>
+</html>

@@ -22,6 +22,19 @@ code, .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-
 .row { display: grid; grid-template-columns: 1fr 200px 1fr auto; gap: 0.8rem; padding: 2px 0; align-items: baseline; }
 .row .tech { color: #888; font-size: 0.9em; }
 .mx { color: #b04; font-weight: 600; font-size: 0.85em; }
+.http { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.85em; color: #666; margin: 0 0 0.2rem 0; padding-left: 0; }
+.http .ok { color: #2a7; font-weight: 600; }
+.http .redir { color: #b80; font-weight: 600; }
+.http .err { color: #a33; font-weight: 600; }
+.http .sep { color: #8884; margin: 0 0.4rem; }
+.state-tag { display: inline-block; font-size: 0.7em; font-weight: 700; letter-spacing: 0.04em; padding: 1px 6px; border-radius: 3px; margin-left: 0.4rem; vertical-align: 1px; }
+.state-LIVE { background: #d11; color: #fff; }
+.state-REDIRECT_OFFSITE { background: #b80; color: #fff; }
+.state-REDIRECT_TO_TARGET { background: #468; color: #fff; }
+.state-BLOCKED { background: #8a6; color: #fff; }
+.state-SERVER_ERROR { background: #888; color: #fff; }
+.state-NO_HTTP { background: #555; color: #fff; }
+.state-OTHER { background: #666; color: #fff; }
 .links { font-size: 0.85em; margin: 0 0 0.5rem 0; padding-left: 0; color: #888; }
 .links a { margin-right: 0.6rem; text-decoration: none; }
 .links a:hover { text-decoration: underline; }
@@ -53,13 +66,14 @@ code, .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-
      Headline:
        <p><strong>{N} high-priority items this run.</strong></p>
 
-     Per item (cap 5; ordered by the priority rubric in report_template.md):
+     Per item (cap 5; ordered by the HTTP-aware priority rubric in report_template.md):
        <div class="item">
-         <span class="tag">{Fresh registration | Singleton + MX | Singleton | Cluster + MX}</span>
+         <span class="tag">{Fresh registration | LIVE singleton | REDIRECT_OFFSITE | NO_HTTP + MX | BLOCKED singleton | REDIRECT_TO_TARGET | Cluster + LIVE | Cluster + MX}</span>
          <code>{candidate}</code> → <code>{ip}</code>
          <span class="tech">({technique})</span>
          <span class="mx">{[MX] or empty}</span>
-         <span class="reason">{one-line reason / recommended next action}</span>
+         <span class="state-tag state-{HTTP_STATE}">{HTTP_STATE}</span>
+         <span class="reason">{one-line reason; include https=code and final-URL host when relevant}</span>
          <span class="links">
            <a href="https://{candidate}" target="_blank" rel="noopener noreferrer">visit</a>
            <a href="https://crt.sh/?q={urlenc:candidate}" target="_blank" rel="noopener noreferrer">crt.sh</a>
@@ -68,6 +82,9 @@ code, .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-
            <a href="https://who.is/whois/{urlenc:candidate}" target="_blank" rel="noopener noreferrer">whois</a>
          </span>
        </div>
+
+     HTTP_STATE values (use the exact spelling — they map to .state-* CSS classes):
+       LIVE, REDIRECT_OFFSITE, REDIRECT_TO_TARGET, BLOCKED, SERVER_ERROR, NO_HTTP, OTHER
 
      Rollup (only if cluster members weren't enumerated above):
        <div class="rollup">{M} other resolving candidates sit in parking-provider clusters (see below).</div>
@@ -79,25 +96,40 @@ code, .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-
 <p>Grouped by <code>/24</code> so parking-provider clusters collapse into a single block. <span class="mx">[MX]</span> means the name can receive email. Each row carries quick-test links — click through to triage.</p>
 {{RESOLVING_BLOCK}}
 <!-- RESOLVING_BLOCK shape per cluster:
+  Each row gets the .row line, then a .http probe line, then a .links line.
+
   Singleton:
-    <div class="row"><code>{candidate}</code><code>{ip}</code><span class="tech">{technique}</span><span class="mx">{[MX] or empty}</span></div>
-    <div class="links">
-      <a href="https://{candidate}" target="_blank" rel="noopener noreferrer">visit</a>
-      <a href="https://crt.sh/?q={urlenc:candidate}" target="_blank" rel="noopener noreferrer">crt.sh</a>
-      <a href="https://www.virustotal.com/gui/domain/{urlenc:candidate}/detection" target="_blank" rel="noopener noreferrer">VT</a>
-      <a href="https://urlscan.io/domain/{urlenc:candidate}" target="_blank" rel="noopener noreferrer">urlscan</a>
-      <a href="https://who.is/whois/{urlenc:candidate}" target="_blank" rel="noopener noreferrer">whois</a>
+    <div class="row">
+      <code>{candidate}</code>
+      <code>{ip}</code>
+      <span class="tech">{technique}</span>
+      <span class="mx">{[MX] or empty}</span>
+      <span class="state-tag state-{HTTP_STATE}">{HTTP_STATE}</span>
     </div>
+    <div class="http">{HTTP_LINE}</div>
+    <div class="links">…five quick-test links…</div>
+
   Multi:
     <div class="cluster"><h3>Cluster {ip}/24 — {n} names on shared infrastructure</h3>
       <div class="row">…</div>
-      <div class="links">…same five links…</div>
+      <div class="http">…</div>
+      <div class="links">…</div>
       <div class="row">…</div>
+      <div class="http">…</div>
       <div class="links">…</div>
     </div>
-  If no resolving rows: <p><em>None.</em></p>
 
-  URL-encode `candidate` for href attributes; HTML-escape everywhere it appears as text.
+  HTTP_LINE rendering (URL-encode candidate for href attrs; HTML-escape all text):
+    - Both probes present and successful:
+        https=<span class="ok">200</span> (self) <span class="sep">·</span> http=<span class="redir">301</span> → <code>{final_host}</code>
+    - Probe error: https=<span class="err">timeout</span> (use the probe's `error` field verbatim, HTML-escaped)
+    - 2xx → wrap status in <span class="ok">
+    - 3xx → wrap status in <span class="redir">
+    - 4xx/5xx → wrap status in <span class="err">
+    - When `final_url` host == candidate, append " (self)"; otherwise append " → <code>{final_host}</code>"
+    - If a probe object is missing (older memory file row, or status != resolves), omit the entire <div class="http"> for that row.
+
+  If no resolving rows: <p><em>None.</em></p>
 -->
 
 <h2>Status transitions this run ({{N_TRANSITIONS}})</h2>
@@ -107,9 +139,12 @@ code, .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-
        <div class="transition">
          <code>{candidate}</code>: {prev or "new"} <span class="arrow">→</span>
          <span class="new">{status}</span> <span class="mx">{[MX] or empty}</span>
+         <span class="state-tag state-{HTTP_STATE}">{HTTP_STATE}</span>
        </div>
+       <div class="http">…probe line, same format as RESOLVING_BLOCK…</div>
        <div class="links">…five quick-test links…</div>
-     Only emit the .links row when the new status is `resolves`.
+     Only emit the .http and .links rows when the new status is `resolves`.
+     The state-tag is also only emitted when status is `resolves`.
 -->
 
 <h2>By technique</h2>

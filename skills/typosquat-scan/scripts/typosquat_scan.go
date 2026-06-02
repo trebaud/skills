@@ -1,5 +1,9 @@
 // typosquat_scan.go — resolve pending and stale candidates from a JSON memory
 // file via DNS (A + MX) in parallel and write results back to the same file.
+// For every row that resolves we additionally probe both https:// and http://
+// (separately, following up to 5 redirects each) so the report layer can use
+// HTTP status code + final URL as a triage signal alongside DNS state.
+//
 // The candidate set itself is produced by the LLM that drives the skill and
 // is written into the memory file (new rows with an empty `last_checked`);
 // this helper just picks up everything that needs (re-)checking and resolves
@@ -8,18 +12,21 @@
 // so the file doubles as a brand-protection feed and an
 // unregistered → resolves transition shows up automatically on subsequent runs.
 //
-// Scope: this binary only handles DNS resolution and memory-file persistence.
-// Report rendering (markdown + HTML) is the skill's responsibility — the LLM
-// driving the workflow reads the memory file after this script exits and
+// Scope: this binary only handles DNS resolution, HTTP probing, and memory-file
+// persistence. Report rendering (markdown + HTML) is the skill's responsibility —
+// the LLM driving the workflow reads the memory file after this script exits and
 // writes the report files itself (see SKILL.md and references/report_template.*).
 package main
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"net"
+	"net/http"
 	"os"
 	"path/filepath"
 	"sort"
@@ -33,18 +40,30 @@ const (
 	defaultMaxCand = 200
 	workers        = 50
 	dnsTimeout     = 2 * time.Second
+	httpTimeout    = 6 * time.Second
+	maxRedirects   = 5
+	probeUserAgent = "Mozilla/5.0 (compatible; typosquat-scan/1.0; +brand-protection)"
 )
 
+type httpProbe struct {
+	Status   int    `json:"status,omitempty"`    // 0 = no response (see Error)
+	FinalURL string `json:"final_url,omitempty"` // URL after following up to maxRedirects
+	Error    string `json:"error,omitempty"`     // short connect/TLS/timeout reason; empty on success
+}
+
 type candidateRecord struct {
-	Candidate   string `json:"candidate"`
-	Technique   string `json:"technique"`
-	Status      string `json:"status"`
-	IP          string `json:"ip,omitempty"`
-	MX          string `json:"mx,omitempty"`
-	FirstSeen   string `json:"first_seen,omitempty"`
-	LastChecked string `json:"last_checked,omitempty"`
-	PrevStatus  string `json:"prev_status,omitempty"`
-	PrevChecked string `json:"prev_checked,omitempty"`
+	Candidate   string     `json:"candidate"`
+	Technique   string     `json:"technique"`
+	Status      string     `json:"status"`
+	IP          string     `json:"ip,omitempty"`
+	MX          string     `json:"mx,omitempty"`
+	HTTPS       *httpProbe `json:"https,omitempty"`
+	HTTP        *httpProbe `json:"http,omitempty"`
+	HTTPChecked string     `json:"http_checked,omitempty"`
+	FirstSeen   string     `json:"first_seen,omitempty"`
+	LastChecked string     `json:"last_checked,omitempty"`
+	PrevStatus  string     `json:"prev_status,omitempty"`
+	PrevChecked string     `json:"prev_checked,omitempty"`
 }
 
 // Status values stored on each candidate row:
@@ -74,6 +93,7 @@ type memory struct {
 type lookupResult struct {
 	candidate      string
 	status, ip, mx string
+	https, http    *httpProbe // nil unless status == "resolves"
 }
 
 func resolveOne(ctx context.Context, r *net.Resolver, fqdn string) (status, ip, mx string) {
@@ -93,6 +113,84 @@ func resolveOne(ctx context.Context, r *net.Resolver, fqdn string) (status, ip, 
 		names = append(names, strings.TrimSuffix(m.Host, "."))
 	}
 	return "resolves", ips[0], strings.Join(names, ";")
+}
+
+// shortError trims a Go network error down to something useful for triage.
+// Long stack-trace-style addresses ("dial tcp 1.2.3.4:443:") are stripped so
+// the memory file stays diffable.
+func shortError(err error) string {
+	if err == nil {
+		return ""
+	}
+	var ne net.Error
+	if errors.As(err, &ne) && ne.Timeout() {
+		return "timeout"
+	}
+	msg := err.Error()
+	// Drop everything before the last ": " — Go wraps network errors with
+	// host:port prefixes that change between runs and bloat diffs.
+	if i := strings.LastIndex(msg, ": "); i != -1 && i < len(msg)-2 {
+		msg = msg[i+2:]
+	}
+	// Cap length so a stray verbose error can't blow up the memory file.
+	if len(msg) > 120 {
+		msg = msg[:120]
+	}
+	return msg
+}
+
+// httpProbeOne issues a single HEAD-then-GET probe against the given URL,
+// follows up to maxRedirects, and returns the final status code + URL. TLS
+// verification is intentionally disabled — we want a status code from squat
+// infrastructure even when it has a self-signed or expired cert. We do NOT
+// trust any response body, only the status line and final URL.
+func httpProbeOne(client *http.Client, url string) *httpProbe {
+	makeReq := func(method string) (*http.Response, error) {
+		req, err := http.NewRequest(method, url, nil)
+		if err != nil {
+			return nil, err
+		}
+		req.Header.Set("User-Agent", probeUserAgent)
+		req.Header.Set("Accept", "*/*")
+		return client.Do(req)
+	}
+	// HEAD first — cheaper and won't pull HTML payloads from parking pages.
+	// Many sites reject HEAD with 405 / serve different status; on anything
+	// that smells off, retry with GET. We discard the body either way.
+	resp, err := makeReq("HEAD")
+	if err == nil && (resp.StatusCode == 405 || resp.StatusCode == 501) {
+		resp.Body.Close()
+		resp, err = makeReq("GET")
+	}
+	if err != nil {
+		return &httpProbe{Error: shortError(err)}
+	}
+	defer resp.Body.Close()
+	final := resp.Request.URL.String()
+	return &httpProbe{Status: resp.StatusCode, FinalURL: final}
+}
+
+// newProbeClient returns an http.Client with a redirect cap, lax TLS, and a
+// per-request timeout. One client per worker is fine — http.Client is safe
+// for concurrent use, but pooling per worker keeps connection reuse local.
+func newProbeClient() *http.Client {
+	tr := &http.Transport{
+		TLSClientConfig:       &tls.Config{InsecureSkipVerify: true},
+		DialContext:           (&net.Dialer{Timeout: httpTimeout}).DialContext,
+		TLSHandshakeTimeout:   httpTimeout,
+		ResponseHeaderTimeout: httpTimeout,
+		DisableKeepAlives:     true, // each probe hits a different host
+	}
+	return &http.Client{
+		Transport: tr,
+		Timeout:   httpTimeout,
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			if len(via) >= maxRedirects {
+				return http.ErrUseLastResponse
+			}
+			return nil
+		},
+	}
 }
 
 func memoryPath(domain string) string {
@@ -217,6 +315,50 @@ func mxNote(mx string) string {
 	return "  [MX]"
 }
 
+// httpNote renders the per-row HTTPS/HTTP triage hint for terminal output.
+// Format: " https=200→example.com http=conn-refused". Empty when both probes
+// are missing (i.e. row hasn't been HTTP-checked yet on an older memory file).
+func httpNote(r *candidateRecord) string {
+	if r.HTTPS == nil && r.HTTP == nil {
+		return ""
+	}
+	one := func(p *httpProbe) string {
+		if p == nil {
+			return "n/a"
+		}
+		if p.Status != 0 {
+			// Trim the final URL to bare host so the terminal line stays narrow.
+			host := finalHost(p.FinalURL)
+			if host != "" {
+				return fmt.Sprintf("%d→%s", p.Status, host)
+			}
+			return fmt.Sprintf("%d", p.Status)
+		}
+		if p.Error != "" {
+			return p.Error
+		}
+		return "?"
+	}
+	return fmt.Sprintf("  https=%s http=%s", one(r.HTTPS), one(r.HTTP))
+}
+
+// finalHost returns just the host component of a URL, or "" on parse failure.
+// Used to keep terminal lines from wrapping when redirects land on long paths.
+func finalHost(u string) string {
+	if u == "" {
+		return ""
+	}
+	// Crude but stdlib-only and good enough for terminal output.
+	s := u
+	if i := strings.Index(s, "://"); i != -1 {
+		s = s[i+3:]
+	}
+	if i := strings.IndexAny(s, "/?#"); i != -1 {
+		s = s[:i]
+	}
+	return s
+}
+
 // printResolving groups resolving candidates by /24 so parking-provider
 // clusters surface as one block instead of many individual lines.
 func printResolving(records []*candidateRecord) {
@@ -240,11 +382,11 @@ func printResolving(records []*candidateRecord) {
 		sort.Slice(rs, func(i, j int) bool { return rs[i].Candidate < rs[j].Candidate })
 		if len(rs) == 1 {
 			r := rs[0]
-			fmt.Printf("  %-40s %-18s (%s)%s\n", r.Candidate, r.IP, r.Technique, mxNote(r.MX))
+			fmt.Printf("  %-40s %-18s (%s)%s%s\n", r.Candidate, r.IP, r.Technique, mxNote(r.MX), httpNote(r))
 		} else {
 			fmt.Printf("  cluster %s (%d names on shared infrastructure):\n", k, len(rs))
 			for _, r := range rs {
-				fmt.Printf("    %-38s %-18s (%s)%s\n", r.Candidate, r.IP, r.Technique, mxNote(r.MX))
+				fmt.Printf("    %-38s %-18s (%s)%s%s\n", r.Candidate, r.IP, r.Technique, mxNote(r.MX), httpNote(r))
 			}
 		}
 	}
@@ -272,7 +414,9 @@ func main() {
 		fmt.Fprintf(os.Stderr, "Usage: typosquat_scan <domain> [-max-candidates N]\n\n")
 		fmt.Fprintf(os.Stderr, "Reads ./<domain>-typosquat-memory.json, resolves every row whose\n")
 		fmt.Fprintf(os.Stderr, "last_checked is empty (new candidate, not yet resolved) or older than %s,\n", staleAfter)
-		fmt.Fprintf(os.Stderr, "then writes results back to the same file.\n\n")
+		fmt.Fprintf(os.Stderr, "then writes results back to the same file. For each row that resolves,\n")
+		fmt.Fprintf(os.Stderr, "also probes https:// and http:// (up to %d redirects, %s timeout) and\n", maxRedirects, httpTimeout)
+		fmt.Fprintf(os.Stderr, "records status code + final URL per scheme.\n\n")
 		fmt.Fprintf(os.Stderr, "New candidates are added to the memory file out-of-band before running\n")
 		fmt.Fprintf(os.Stderr, "this script (see SKILL.md).\n\n")
 		flag.PrintDefaults()
@@ -352,11 +496,32 @@ func main() {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
+			// One probe client per worker — reuses transport state inside
+			// the worker without contending with peers.
+			client := newProbeClient()
 			for fqdn := range jobs {
 				lookupCtx, cancel := context.WithTimeout(context.Background(), dnsTimeout)
 				status, ip, mx := resolveOne(lookupCtx, resolver, fqdn)
 				cancel()
-				out <- lookupResult{candidate: fqdn, status: status, ip: ip, mx: mx}
+				res := lookupResult{candidate: fqdn, status: status, ip: ip, mx: mx}
+				// HTTP probe only when the name actually resolves; otherwise
+				// there's nothing to connect to and we'd just burn timeouts.
+				if status == "resolves" {
+					// Probe https and http in parallel — independent connections,
+					// both signals matter (squats often have only one).
+					var pwg sync.WaitGroup
+					pwg.Add(2)
+					go func() {
+						defer pwg.Done()
+						res.https = httpProbeOne(client, "https://"+fqdn)
+					}()
+					go func() {
+						defer pwg.Done()
+						res.http = httpProbeOne(client, "http://"+fqdn)
+					}()
+					pwg.Wait()
+				}
+				out <- res
 			}
 		}()
 	}
@@ -389,6 +554,19 @@ func main() {
 		existing.LastChecked = now
 		if existing.FirstSeen == "" {
 			existing.FirstSeen = now
+		}
+		// Replace HTTP probe data wholesale on every check — old codes are
+		// stale once DNS may have repointed. If the row no longer resolves,
+		// clear any prior probe so the report doesn't show stale 200s on
+		// what is now NXDOMAIN.
+		if r.status == "resolves" {
+			existing.HTTPS = r.https
+			existing.HTTP = r.http
+			existing.HTTPChecked = now
+		} else {
+			existing.HTTPS = nil
+			existing.HTTP = nil
+			existing.HTTPChecked = ""
 		}
 		touched = append(touched, existing)
 		done++
