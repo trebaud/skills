@@ -72,6 +72,7 @@ Skills that live outside the SDLC loop — situational tools for security monito
 |-------|-------------|
 | [gh-feed](skills/gh-feed/SKILL.md) | Shows a rich feed of active open pull requests across all GitHub repos — links, review status, CI, comments, and latest activity. |
 | [macos-security-audit](skills/macos-security-audit/SKILL.md) | Runs a comprehensive security audit on macOS: processes, network, persistence, hardening, and more. |
+| [todo](skills/todo/SKILL.md) | Tracks personal todo tasks through a simple single-page web app backed by SQLite — add, complete, and remove tasks. One Bun script, no dependencies. |
 | [typosquat-scan](skills/typosquat-scan/SKILL.md) | Generates lookalike-domain candidates for a domain, resolves them via DNS, and probes HTTP/HTTPS to surface phishing impersonators and brand-protection registrations. |
 | [unslop](skills/unslop/SKILL.md) | Rewrites text to remove AI tropes and cliches, making it sound more natural and human. |
 | [vuln-feed-scan](skills/vuln-feed-scan/SKILL.md) | Scans security feeds for recent high-signal vulnerabilities affecting our stack (nodejs, typescript, mongo, npm, aws, crypto). |
