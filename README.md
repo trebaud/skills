@@ -25,7 +25,7 @@ ln -s ~/.agents/skills ~/.opencode/skills
          ▲                                                                                    │
          └───────────────────────────────────── iterate ──────────────────────────────────────┘
 
-   Understand:     repo-visualizer · pr-visualizer
+   Understand:     repo-visualizer · pr-visualizer · i-know-kungfu
    Plan:           prd · specs-generator · rfc-generator · interview
    Design:         arch-diagram · kiss-check
    Develop:        janitor · refactor
@@ -34,7 +34,7 @@ ln -s ~/.agents/skills ~/.opencode/skills
                    gha-audit · audit-fix · create-pr · releaser
 ```
 
-- **Understand** -- `repo-visualizer` to map a whole codebase, `pr-visualizer` to explain a diff — both as shareable, dependency-free HTML pages
+- **Understand** -- `repo-visualizer` to map a whole codebase, `pr-visualizer` to explain a diff — both as shareable, dependency-free HTML pages; `i-know-kungfu` to actually *learn* a concept/codebase/paper via an evidence-based active-learning loop
 - **Plan** -- `prd` for product requirements, `specs-generator` for feature specs, `rfc-generator` for proposals, `interview` to validate plans
 - **Design** -- `arch-diagram` to visualize the system, `kiss-check` to challenge complexity
 - **Develop** -- `janitor` for architecture and code quality, `refactor` for safe simplification
@@ -49,6 +49,7 @@ ln -s ~/.agents/skills ~/.opencode/skills
 | [create-pr](skills/create-pr/SKILL.md) | Creates pull requests with auto-generated title and description. |
 | [debug](skills/debug/SKILL.md) | Test-first debugging. Creates reproducing tests, then uses subagents to implement fixes. |
 | [gha-audit](skills/gha-audit/SKILL.md) | Audits GitHub Actions workflows for security issues — dangerous triggers, script injection, unpinned actions, over-permissioned tokens. |
+| [i-know-kungfu](skills/i-know-kungfu/SKILL.md) | Tutors a human to genuine fluency in a concept/codebase/paper using a cognitive-science active-learning loop (retrieval, predict-reveal, spacing, Feynman teach-back). Main deliverable is a set of linked self-contained HTML pages — an overview hub with a concept-map graph, one active-recall lesson page per chunk, flashcards, a self-quiz, and a spaced-review plan. |
 | [interview](skills/interview/SKILL.md) | Asks non-obvious technical questions about implementation plans, tradeoffs, and constraints. |
 | [janitor](skills/janitor/SKILL.md) | Refactors code toward Clean Architecture and Clean Code principles. Fixes dependency violations, separates concerns, improves code quality. |
 | [kiss-check](skills/kiss-check/SKILL.md) | Forces justification for complex solutions. Must explain why simpler won't work. |
