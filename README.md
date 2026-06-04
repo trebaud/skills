@@ -19,12 +19,13 @@ ln -s ~/.agents/skills ~/.opencode/skills
 ## Skills in the SDLC
 
 ```
-   ┌───────────┐   ┌───────────┐   ┌───────────┐   ┌───────────┐   ┌───────────────┐
-   │   Plan    │──▶│  Design   │──▶│  Develop  │──▶│   Test    │──▶│ Review & Ship │
-   └───────────┘   └───────────┘   └───────────┘   └───────────┘   └───────────────┘
-         ▲                                                                  │
-         └──────────────────────────── iterate ─────────────────────────────┘
+   ┌────────────┐   ┌───────────┐   ┌───────────┐   ┌───────────┐   ┌───────────┐   ┌───────────────┐
+   │ Understand │──▶│   Plan    │──▶│  Design   │──▶│  Develop  │──▶│   Test    │──▶│ Review & Ship │
+   └────────────┘   └───────────┘   └───────────┘   └───────────┘   └───────────┘   └───────────────┘
+         ▲                                                                                       │
+         └───────────────────────────────────── iterate ──────────────────────────────────────┘
 
+   Understand:     repo-visualizer · pr-visualizer
    Plan:           prd · specs-generator · rfc-generator · interview
    Design:         arch-diagram · kiss-check
    Develop:        janitor · refactor
@@ -33,6 +34,7 @@ ln -s ~/.agents/skills ~/.opencode/skills
                    gha-audit · audit-fix · create-pr · releaser
 ```
 
+- **Understand** -- `repo-visualizer` to map a whole codebase, `pr-visualizer` to explain a diff — both as shareable, dependency-free HTML pages
 - **Plan** -- `prd` for product requirements, `specs-generator` for feature specs, `rfc-generator` for proposals, `interview` to validate plans
 - **Design** -- `arch-diagram` to visualize the system, `kiss-check` to challenge complexity
 - **Develop** -- `janitor` for architecture and code quality, `refactor` for safe simplification
@@ -50,8 +52,10 @@ ln -s ~/.agents/skills ~/.opencode/skills
 | [interview](skills/interview/SKILL.md) | Asks non-obvious technical questions about implementation plans, tradeoffs, and constraints. |
 | [janitor](skills/janitor/SKILL.md) | Refactors code toward Clean Architecture and Clean Code principles. Fixes dependency violations, separates concerns, improves code quality. |
 | [kiss-check](skills/kiss-check/SKILL.md) | Forces justification for complex solutions. Must explain why simpler won't work. |
+| [pr-visualizer](skills/pr-visualizer/SKILL.md) | Generates a self-contained HTML page explaining a PR/branch/diff at a glance — interactive SVG graphs, file-change cards, decisions timeline, before/after toggle. |
 | [prd](skills/prd/SKILL.md) | Generates Product Requirements Documents with clarifying questions, user stories, and acceptance criteria. |
 | [refactor](skills/refactor/SKILL.md) | Safe refactoring with automated test verification after each step. |
+| [repo-visualizer](skills/repo-visualizer/SKILL.md) | Generates a self-contained HTML page mapping an entire codebase — dependency graph, directory tree, runtime flows, module cards, and a "where to start" onboarding checklist. |
 | [releaser](skills/releaser/SKILL.md) | Cuts a new release of a bun package: bumps version, runs typecheck and tests, pushes the git tag, creates a GitHub release with curated changelog. |
 | [rfc-generator](skills/rfc-generator/SKILL.md) | Creates RFC documents for new features through interactive questioning. |
 | [security-analysis](skills/security-analysis/SKILL.md) | Identifies security vulnerabilities and analyzes security reports. |
@@ -67,6 +71,7 @@ Skills that live outside the SDLC loop — situational tools for security monito
 |-------|-------------|
 | [gh-feed](skills/gh-feed/SKILL.md) | Shows a rich feed of active open pull requests across all GitHub repos — links, review status, CI, comments, and latest activity. |
 | [macos-security-audit](skills/macos-security-audit/SKILL.md) | Runs a comprehensive security audit on macOS: processes, network, persistence, hardening, and more. |
+| [typosquat-scan](skills/typosquat-scan/SKILL.md) | Generates lookalike-domain candidates for a domain, resolves them via DNS, and probes HTTP/HTTPS to surface phishing impersonators and brand-protection registrations. |
 | [unslop](skills/unslop/SKILL.md) | Rewrites text to remove AI tropes and cliches, making it sound more natural and human. |
 | [vuln-feed-scan](skills/vuln-feed-scan/SKILL.md) | Scans security feeds for recent high-signal vulnerabilities affecting our stack (nodejs, typescript, mongo, npm, aws, crypto). |
 
