@@ -70,6 +70,7 @@ Skills that live outside the SDLC loop — situational tools for security monito
 
 | Skill | Description |
 |-------|-------------|
+| [demo-gif](skills/demo-gif/SKILL.md) | Records polished demo GIFs of any terminal app (TUI or CLI) from a given set of instructions — VHS-scripted `.tape` files verified frame-by-frame with screenshots. |
 | [gh-feed](skills/gh-feed/SKILL.md) | Shows a rich feed of active open pull requests across all GitHub repos — links, review status, CI, comments, and latest activity. |
 | [macos-security-audit](skills/macos-security-audit/SKILL.md) | Runs a comprehensive security audit on macOS: processes, network, persistence, hardening, and more. |
 | [todo](skills/todo/SKILL.md) | Tracks personal todo tasks through a simple single-page web app backed by SQLite — add, complete, and remove tasks. One Bun script, no dependencies. |
