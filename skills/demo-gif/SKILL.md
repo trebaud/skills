@@ -26,7 +26,7 @@ VHS needs `vhs` + `ttyd` + `ffmpeg`. If they are already on `PATH` (or in
 Otherwise run the bundled installer (idempotent — a no-op when tools exist):
 
 ```bash
-bash ~/.claude/skills/demo-gif/scripts/setup-tools.sh   # installs into ~/.local/vhs-tools/bin
+bash scripts/setup-tools.sh   # installs into ~/.local/vhs-tools/bin
 export PATH="$HOME/.local/vhs-tools/bin:$PATH"           # use the line it prints
 ```
 
