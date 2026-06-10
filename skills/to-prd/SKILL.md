@@ -1,7 +1,6 @@
 ---
 name: to-prd
 description: "Convert a markdown PRD into prd.json format. Reads $PRD_INPUT and writes structured user stories to $PRD_OUTPUT."
-user-invocable: false
 ---
 
 # PRD Converter
