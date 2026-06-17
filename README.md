@@ -86,3 +86,7 @@ Skills that live outside the SDLC loop — situational tools for security monito
 |--------|-------------|
 | `scripts/sync-skills.sh` | Symlinks each skill into `~/.claude/skills` and `~/.opencode/skills`, removing stale links. |
 | `scripts/claude-worktree.sh` | Creates a git worktree under `.claude/worktrees/<branch>`, installs deps, and launches Claude Code. |
+
+## Evals
+
+Some skills are tested with [Anthropic's `skill-creator`](https://github.com/anthropics/skills) eval harness. Each test case runs the prompt twice — once with the skill, once without — then grades both against assertions to measure what the skill actually adds. Test definitions live in `skills/<name>/evals/evals.json`; generated run outputs, gradings, and benchmarks land in a `skills/<name>-workspace/` folder that is gitignored.
