@@ -1,9 +1,5 @@
 # Skill threat catalog — OWASP Agentic Skills Top 10
 
-What each [OWASP Agentic Skills Top 10](https://owasp.org/www-project-agentic-skills-top-10/)
-risk looks like inside a skill. Keep the skill-specific signals below in mind; the generic
-attack classes (reverse shells, prompt injection, typosquatting) you already know.
-
 - **AST01 — Malicious skills.** Hidden malicious code (RCE, reverse shells,
   credential/secret theft, exfil channels, persistence, C2, destructive ops), prompt
   injection aimed at the host model, ClickFix steps telling the *user* to run something

