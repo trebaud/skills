@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "api-mirror-helper": {
+      "command": "npx",
+      "args": ["-y", "api-mirror-helper@latest"]
+    }
+  }
+}

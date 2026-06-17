@@ -88,7 +88,8 @@ PATTERNS = [
     _p("bash-i-reverse", "CRITICAL", r"bash\s+-i\b.*>&\s*/dev/tcp"),
     # Credential / secret exfiltration
     _p("read-ssh-keys", "HIGH", r"~/?\.ssh/|id_rsa|id_ed25519|authorized_keys|known_hosts"),
-    _p("read-cloud-creds", "HIGH", r"~/?\.aws/credentials|\.aws/config|gcloud|\.kube/config|\.docker/config"),
+    _p("read-cloud-creds", "HIGH", r"\.aws/credentials|\.aws/config|gcloud|\.kube/config|\.docker/config|\.netrc"),
+    _p("read-token-file", "HIGH", r"\.npmrc|\.pypirc|\.config/gh/hosts|\.git-credentials|\.config/hub|\.cargo/credentials|\.gem/credentials"),
     _p("read-dotenv", "HIGH", r"\b\.env(\.[a-z]+)?\b"),
     _p("read-keychain", "HIGH", r"security\s+find-(generic|internet)-password|login\.keychain"),
     _p("read-browser-data", "HIGH", r"Login Data|cookies\.sqlite|Local Storage/leveldb"),
@@ -111,9 +112,31 @@ PATTERNS = [
     _p("raw-ip-url", "MEDIUM", r"https?://\d{1,3}(\.\d{1,3}){3}"),
     _p("suspicious-host", "MEDIUM", r"\b(pastebin\.com|ngrok\.io|ngrok-free\.app|trycloudflare\.com|webhook\.site|requestbin|burpcollaborator|interact\.sh|oast\.|transfer\.sh|0x0\.st|termbin\.com|bit\.ly|tinyurl)\b"),
     _p("discord-telegram-webhook", "HIGH", r"discord(app)?\.com/api/webhooks|api\.telegram\.org/bot"),
-    # Package supply chain
+    # Package supply chain (AST02)
     _p("install-from-url", "MEDIUM", r"(pip|pip3)\s+install[^\n]*https?://|npm\s+install[^\n]*(https?://|git\+)"),
     _p("curl-to-tmp-run", "HIGH", r"(curl|wget)[^\n]*-o\s+/tmp/[^\n]*&&[^\n]*chmod[^\n]*\+x"),
+    # Unsafe deserialization (AST05) — payloads that execute during config/skill loading
+    _p("yaml-python-tag", "CRITICAL", r"!!python/(object|module|name)"),
+    _p("yaml-unsafe-load", "HIGH", r"yaml\.(unsafe_)?load\s*\((?![^)]*(Safe|CSafe)Loader)|yaml\.full_load\b|Loader\s*=\s*(yaml\.)?(Loader|FullLoader|UnsafeLoader)\b"),
+    _p("pickle-load", "HIGH", r"\b(c?[pP]ickle|dill)\.(loads?|Unpickler)\b|\bmarshal\.loads?\b|\b__reduce__\b"),
+    _p("prototype-pollution", "HIGH", r"__proto__|constructor\s*\.\s*prototype|\[\s*['\"]__proto__['\"]\s*\]"),
+    _p("toml-namespace-inject", "LOW", r"toml\.loads?\b|tomllib\.loads?\b"),
+    # Identity-file / agent-memory poisoning (AST01, AST03) — persistent behavioral backdoors
+    _p("agent-identity-write", "HIGH", r"(>>?|tee|cat\s*>|cp\b|mv\b|echo[^\n]*>)[^\n]*\b(SOUL|MEMORY|CLAUDE|AGENTS|GEMINI|\.cursorrules|\.clauderc)\b|\.md\b[^\n]*(append|overwrite)"),
+    _p("agent-identity-ref", "LOW", r"\b(SOUL\.md|MEMORY\.md|CLAUDE\.md|AGENTS\.md|\.cursorrules)\b"),
+    # Config-file / MCP / hooks hijacking that can trigger on project open (AST02, AST06)
+    _p("mcp-config-write", "MEDIUM", r"mcpServers|\.mcp\.json|claude_desktop_config|\.claude/settings|\.cursor/mcp|\.vscode/settings\.json"),
+    # Update drift / unpinned + auto-update + hot-reload (AST07)
+    _p("install-unpinned", "LOW", r"@(latest|main|master|HEAD)\b|(pip|pip3)\s+install[^\n]*(--upgrade|-U)\b|npm\s+(i|install)[^\n]*@latest"),
+    _p("auto-update", "MEDIUM", r"auto[-_ ]?updat|self[-_ ]?updat|hot[-_ ]?reload"),
+    # Localhost services / WebSocket C2 (AST01, AST06)
+    _p("websocket-channel", "MEDIUM", r"\bwss?://|new\s+WebSocket\s*\(|websockets?\.(connect|client|serve)|WebSocketApp"),
+]
+
+# Social-engineering / ClickFix prose aimed at the *user* (AST01) — scanned in .md only.
+SOCIAL_PATTERNS = [
+    _p("clickfix-prereq", "MEDIUM", r"(paste|copy)[^\n]{0,40}(terminal|shell|command line|iex|powershell)|run\s+(this|the following)\s+command\s+(in|to|before)|before\s+(using|installing)[^\n]{0,40}\brun\b"),
+    _p("manual-chmod-run", "MEDIUM", r"chmod\s+\+x[^\n]*&&[^\n]*\./|please\s+run\s+|sudo\s+(bash|sh)\s"),
 ]
 
 # Prompt-injection phrasing aimed at the *auditing/host* LLM, not the user.
@@ -128,6 +151,44 @@ INJECTION_PATTERNS = [
 
 # Risky frontmatter keys in SKILL.md
 BROAD_TOOLS = {"bash", "*", "all"}
+
+# Map each mechanical check to the OWASP Agentic Skills Top 10 risk it evidences.
+# https://owasp.org/www-project-agentic-skills-top-10/
+AST_MAP = {
+    # AST01 Malicious Skills
+    "pipe-to-shell": "AST01", "pipe-to-interpreter": "AST01", "eval-of-download": "AST01",
+    "reverse-shell-devtcp": "AST01", "netcat-exec": "AST01", "bash-i-reverse": "AST01",
+    "read-ssh-keys": "AST01", "read-cloud-creds": "AST01", "read-token-file": "AST01",
+    "read-dotenv": "AST01",
+    "read-keychain": "AST01", "read-browser-data": "AST01", "read-shell-history": "AST01",
+    "env-dump": "AST01", "write-shell-rc": "AST01", "crontab-install": "AST01",
+    "ssh-authorized-write": "AST01", "rm-rf-root": "AST01", "dd-disk": "AST01",
+    "disable-history": "AST01", "raw-ip-url": "AST01", "suspicious-host": "AST01",
+    "discord-telegram-webhook": "AST01", "clickfix-prereq": "AST01", "manual-chmod-run": "AST01",
+    "exfil-instruction": "AST01",
+    # AST02 Supply Chain Compromise
+    "install-from-url": "AST02", "curl-to-tmp-run": "AST02", "mcp-config-write": "AST02",
+    # AST03 Over-Privileged Skills
+    "broad-tools": "AST03", "agent-identity-write": "AST03", "agent-identity-ref": "AST03",
+    # AST04 Insecure Metadata (steganographic injection / impersonation)
+    "hidden-unicode": "AST04", "bidi-control": "AST04", "weird-space": "AST04",
+    "private-use": "AST04", "control-char": "AST04", "homoglyph": "AST04",
+    "tag-smuggling": "AST04", "variation-selector-smuggling": "AST04",
+    # AST05 Unsafe Deserialization
+    "yaml-python-tag": "AST05", "yaml-unsafe-load": "AST05", "pickle-load": "AST05",
+    "prototype-pollution": "AST05", "toml-namespace-inject": "AST05", "frontmatter-hook": "AST05",
+    # AST06 Weak Isolation
+    "symlink": "AST06", "websocket-channel": "AST06",
+    # AST07 Update Drift
+    "install-unpinned": "AST07", "auto-update": "AST07",
+    # AST08 Poor Scanning (obfuscation that defeats pattern matching; opaque blobs)
+    "base64-decode-exec": "AST08", "hex-decode-exec": "AST08", "python-exec-eval": "AST08",
+    "rot13-or-tr-obfusc": "AST08", "long-base64-blob": "AST08", "long-hex-blob": "AST08",
+    "binary-file": "AST08",
+    # Host-model prompt injection (cross-cuts AST01/AST04/AST08)
+    "ignore-instructions": "AST01", "override-system-prompt": "AST01",
+    "do-not-tell-user": "AST01", "silently": "AST01", "auto-approve": "AST01",
+}
 
 
 def severity_rank(s):
@@ -307,6 +368,7 @@ def main():
         scan_encoded_blobs(text, findings, rel)
         if rel.endswith(".md"):
             scan_patterns(text, findings, rel, INJECTION_PATTERNS)
+            scan_patterns(text, findings, rel, SOCIAL_PATTERNS)
         if os.path.basename(path).upper().startswith("SKILL.MD") or os.path.basename(path) == "SKILL.md":
             scan_frontmatter(text, findings, rel)
         if execbit:
@@ -329,13 +391,19 @@ def main():
         counts[sev] = counts.get(sev, 0) + 1
     summary = " ".join(f"{counts[s]} {s}" for s in ("CRITICAL", "HIGH", "MEDIUM", "LOW", "INFO") if s in counts)
     print(f"## Findings ({len(findings)} — {summary})\n")
-    print("| Severity | Check | File | Line | Detail |")
-    print("|----------|-------|------|------|--------|")
+    print("| Severity | OWASP | Check | File | Line | Detail |")
+    print("|----------|-------|-------|------|------|--------|")
     for sev, label, rel, line, detail in findings:
         detail = detail.replace("|", "\\|")
-        print(f"| {sev} | {label} | {rel} | {line or '-'} | {detail} |")
+        ast = AST_MAP.get(label, "-")
+        print(f"| {sev} | {ast} | {label} | {rel} | {line or '-'} | {detail} |")
 
-    print("\n> Mechanical findings only. Pattern matches are CANDIDATES — confirm intent in the semantic review before reporting. CRITICAL/HIGH hidden-unicode, bidi, tag-smuggling, and exfil findings are almost never legitimate in a skill.")
+    # Which OWASP Agentic Skills Top 10 risks have at least one candidate.
+    seen = sorted({AST_MAP.get(f[1]) for f in findings} - {None, "-"})
+    if seen:
+        print(f"\nOWASP risks with candidates: {', '.join(seen)} "
+              "(see references/threats.md for AST01–AST10).")
+    print("\n> Mechanical findings only. Pattern matches are CANDIDATES — confirm intent in the semantic review before reporting. Pattern matching alone misses natural-language / context-dependent attacks (AST08), so the semantic review is mandatory even when this table is empty. CRITICAL/HIGH hidden-unicode, bidi, tag-smuggling, deserialization, and exfil findings are almost never legitimate in a skill.")
     return 1 if any(severity_rank(f[0]) <= 1 for f in findings) else 0
 
 
