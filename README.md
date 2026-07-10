@@ -30,7 +30,7 @@ ln -s ~/.agents/skills ~/.opencode/skills
    Design:         arch-diagram · kiss-check
    Develop:        janitor · refactor
    Test:           test-generator · debug
-   Review & Ship:  code-reviewer · security-analysis · semgrep-audit
+   Review & Ship:  pr-walkthrough · code-reviewer · security-analysis · semgrep-audit
                    gha-audit · audit-fix · create-pr · releaser
 ```
 
@@ -39,7 +39,7 @@ ln -s ~/.agents/skills ~/.opencode/skills
 - **Design** -- `arch-diagram` to visualize the system, `kiss-check` to challenge complexity
 - **Develop** -- `janitor` for architecture and code quality, `refactor` for safe simplification
 - **Test** -- `test-generator` for coverage, `debug` for test-first bug fixing
-- **Review & Ship** -- `code-reviewer` + `security-analysis` + `semgrep-audit` for code review, `gha-audit` for CI security, `audit-fix` for dependency vulnerabilities, `create-pr` to open the PR, `releaser` to cut a release
+- **Review & Ship** -- `pr-walkthrough` for a guided-review HTML page that walks a human through a PR in call order, `code-reviewer` + `security-analysis` + `semgrep-audit` for code review, `gha-audit` for CI security, `audit-fix` for dependency vulnerabilities, `create-pr` to open the PR, `releaser` to cut a release
 
 | Skill | Description |
 |-------|-------------|
@@ -55,6 +55,7 @@ ln -s ~/.agents/skills ~/.opencode/skills
 | [kiss-check](skills/kiss-check/SKILL.md) | Forces justification for complex solutions. Must explain why simpler won't work. |
 | [pr-visualizer](skills/pr-visualizer/SKILL.md) | Generates a self-contained HTML page explaining a PR/branch/diff at a glance — interactive SVG graphs, file-change cards, decisions timeline, before/after toggle. |
 | [prd](skills/prd/SKILL.md) | Generates Product Requirements Documents with clarifying questions, user stories, and acceptance criteria. |
+| [pr-walkthrough](skills/pr-walkthrough/SKILL.md) | Generates a self-contained HTML page that walks a reviewer through a PR as a guided journey — trust-flow map, numbered stops ordered by call depth from entry points/trust boundaries down into business logic, per-stop trust-tagged review questions, and live progress tracking. |
 | [refactor](skills/refactor/SKILL.md) | Safe refactoring with automated test verification after each step. |
 | [repo-visualizer](skills/repo-visualizer/SKILL.md) | Generates a self-contained HTML page mapping an entire codebase — dependency graph, directory tree, runtime flows, module cards, and a "where to start" onboarding checklist. |
 | [releaser](skills/releaser/SKILL.md) | Cuts a new release of a bun package: bumps version, runs typecheck and tests, pushes the git tag, creates a GitHub release with curated changelog. |

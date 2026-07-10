@@ -282,6 +282,7 @@ COMPONENTS LIBRARY  —  copy what you need into <main>. This block never render
    Edge styles: solid=call, stroke-dasharray "2 4"=write, "6 5"=read.
    Animated packet: add a 2nd <path class="pkt" pathLength="100" .../> over a call edge (stagger via style="animation-delay:.5s").
    Lay nodes on a grid; node box ~150x60; node center = (x+75, y+30). Tip: outbound path L→R, inbound path R→L, models in the middle.
+   Order matters: write all EDGE <g> elements before the NODE <g> elements so edges render under the nodes.
 <div class="gwrap">
   <svg class="depgraph" viewBox="0 0 980 560" role="img" aria-label="Module dependency graph">
     <defs>
@@ -290,7 +291,6 @@ COMPONENTS LIBRARY  —  copy what you need into <main>. This block never render
       <marker id="a-amber"  markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#ffb454"/></marker>
       <marker id="a-red"    markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#ff6b81"/></marker>
     </defs>
-    <!-- EDGES first (render under nodes) -->
     <g class="gedge" data-from="a" data-to="b">
       <path d="M190,100 L290,100" stroke="#46507a" stroke-width="2" fill="none" marker-end="url(#a-indigo)"/>
       <path class="pkt" d="M190,100 L290,100" stroke="#7c8cff" stroke-width="3" pathLength="100" style="animation-delay:0s"/>
@@ -299,7 +299,6 @@ COMPONENTS LIBRARY  —  copy what you need into <main>. This block never render
       <path d="M385,130 L385,240" stroke="#46d6a0" stroke-width="2" fill="none" stroke-dasharray="2 4" marker-end="url(#a-green)"/>
       <text x="392" y="190">write</text>
     </g>
-    <!-- NODES (color by type via stroke + style="color:..." so the hot glow matches) -->
     <g class="gnode" data-id="a"><rect x="40"  y="70" width="150" height="60" rx="11" fill="#211a36" stroke="#b98bff" stroke-width="1.5" style="color:#b98bff"/><text class="nt" x="115" y="95" text-anchor="middle">Route</text><text class="ns" x="115" y="113" text-anchor="middle">entry</text></g>
     <g class="gnode" data-id="b"><rect x="290" y="70" width="150" height="60" rx="11" fill="#1a2040" stroke="#7c8cff" stroke-width="1.5" style="color:#7c8cff"/><text class="nt" x="365" y="95" text-anchor="middle">Controller</text><text class="ns" x="365" y="113" text-anchor="middle">logic</text></g>
     <g class="gnode" data-id="model"><rect x="290" y="240" width="150" height="60" rx="11" fill="#0f241b" stroke="#46d6a0" stroke-width="1.5" style="color:#46d6a0"/><text class="nt" x="365" y="265" text-anchor="middle">Model</text><text class="ns" x="365" y="283" text-anchor="middle">db</text></g>
