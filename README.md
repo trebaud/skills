@@ -28,7 +28,7 @@ ln -s ~/.agents/skills ~/.opencode/skills
    Understand:     repo-visualizer · pr-visualizer · i-know-kungfu
    Plan:           prd · specs-generator · rfc-generator · interview
    Design:         arch-diagram · kiss-check · threat-model
-   Develop:        janitor · refactor
+   Develop:        architecture-audit · taste
    Test:           test-generator · debug
    Review & Ship:  pr-walkthrough · code-reviewer · security-analysis · semgrep-audit
                    gha-audit · audit-fix · create-pr · releaser
@@ -37,7 +37,7 @@ ln -s ~/.agents/skills ~/.opencode/skills
 - **Understand** -- `repo-visualizer` to map a whole codebase, `pr-visualizer` to explain a diff — both as shareable, dependency-free HTML pages; `i-know-kungfu` to actually *learn* a concept/codebase/paper via an evidence-based active-learning loop
 - **Plan** -- `prd` for product requirements, `specs-generator` for feature specs, `rfc-generator` for proposals, `interview` to validate plans
 - **Design** -- `arch-diagram` to visualize the system, `kiss-check` to challenge complexity, `threat-model` to map what an attacker does with it
-- **Develop** -- `janitor` for architecture and code quality, `refactor` for safe simplification
+- **Develop** -- `architecture-audit` for architecture and code quality, `taste` for refactoring house rules — scope, indirection, placement, naming, comments, signatures
 - **Test** -- `test-generator` for coverage, `debug` for test-first bug fixing
 - **Review & Ship** -- `pr-walkthrough` for a guided-review HTML page that walks a human through a PR in call order, `code-reviewer` + `security-analysis` + `semgrep-audit` for code review, `gha-audit` for CI security, `audit-fix` for dependency vulnerabilities, `create-pr` to open the PR, `releaser` to cut a release
 
@@ -51,18 +51,18 @@ ln -s ~/.agents/skills ~/.opencode/skills
 | [gha-audit](skills/gha-audit/SKILL.md) | Audits GitHub Actions workflows for security issues — dangerous triggers, script injection, unpinned actions, over-permissioned tokens. |
 | [i-know-kungfu](skills/i-know-kungfu/SKILL.md) | Tutors a human to genuine fluency in a concept/codebase/paper using a cognitive-science active-learning loop (retrieval, predict-reveal, spacing, Feynman teach-back). Main deliverable is a set of linked self-contained HTML pages — an overview hub with a concept-map graph, one active-recall lesson page per chunk, flashcards, a self-quiz, and a spaced-review plan. |
 | [interview](skills/interview/SKILL.md) | Asks non-obvious technical questions about implementation plans, tradeoffs, and constraints. |
-| [janitor](skills/janitor/SKILL.md) | Refactors code toward Clean Architecture and Clean Code principles. Fixes dependency violations, separates concerns, improves code quality. |
+| [architecture-audit](skills/architecture-audit/SKILL.md) | Refactors code toward Clean Architecture and Clean Code principles. Fixes dependency violations, separates concerns, improves code quality. |
 | [kiss-check](skills/kiss-check/SKILL.md) | Forces justification for complex solutions. Must explain why simpler won't work. |
 | [pr-visualizer](skills/pr-visualizer/SKILL.md) | Generates a self-contained HTML page explaining a PR/branch/diff at a glance — interactive SVG graphs, file-change cards, decisions timeline, before/after toggle. |
 | [prd](skills/prd/SKILL.md) | Generates Product Requirements Documents with clarifying questions, user stories, and acceptance criteria. |
 | [pr-walkthrough](skills/pr-walkthrough/SKILL.md) | Generates a self-contained HTML page that walks a reviewer through a PR as a guided journey — trust-flow map, numbered stops ordered by call depth from entry points/trust boundaries down into business logic, per-stop trust-tagged review questions, and live progress tracking. |
-| [refactor](skills/refactor/SKILL.md) | Safe refactoring with automated test verification after each step. |
 | [repo-visualizer](skills/repo-visualizer/SKILL.md) | Generates a self-contained HTML page mapping an entire codebase — dependency graph, directory tree, runtime flows, module cards, and a "where to start" onboarding checklist. |
 | [releaser](skills/releaser/SKILL.md) | Cuts a new release of a bun package: bumps version, runs typecheck and tests, pushes the git tag, creates a GitHub release with curated changelog. |
 | [rfc-generator](skills/rfc-generator/SKILL.md) | Creates RFC documents for new features through interactive questioning. |
 | [security-analysis](skills/security-analysis/SKILL.md) | Identifies security vulnerabilities and analyzes security reports. |
 | [semgrep-audit](skills/semgrep-audit/SKILL.md) | White-box security auditor with semgrep integration. Triages scan results and proposes concrete fixes. |
 | [specs-generator](skills/specs-generator/SKILL.md) | Creates SPECS.md files for new features and design documentation. |
+| [taste](skills/taste/SKILL.md) | House rules for refactoring, distilled from past review feedback — pins scope, removes indirection, places code where it belongs, and checks naming, comments, signatures, and verification. |
 | [test-generator](skills/test-generator/SKILL.md) | Generates unit and integration tests following existing patterns. |
 | [threat-model](skills/threat-model/SKILL.md) | Builds a threat model into THREAT_MODEL.md — trust-boundary diagram, STRIDE pass over every boundary crossing, likelihood x impact scoring, and a disposition plus code-verified control for every threat. Reference covers where boundaries actually sit and the failure modes that make a threat model look complete while being wrong. |
 

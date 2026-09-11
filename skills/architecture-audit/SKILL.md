@@ -1,15 +1,15 @@
 ---
-name: janitor
+name: architecture-audit
 description: >-
   Refactor a codebase using Clean Architecture and Clean Code principles — fix
   dependency violations, separate concerns, improve code quality, push
-  infrastructure outward. Use when: the user asks to "janitor" code, refactor,
+  infrastructure outward. Use when: the user asks to "audit the architecture", refactor,
   reorganize layers, fix dependency violations, separate concerns, clean up
   code, or decouple business logic from infrastructure.
 allowed-tools: Read, Grep, Glob, Edit, Write, Bash, Agent
 ---
 
-# Janitor
+# Architecture Audit
 
 Read **`references/clean-architecture-guide.md`** and **`references/clean-code-guide.md`** before starting.
 
