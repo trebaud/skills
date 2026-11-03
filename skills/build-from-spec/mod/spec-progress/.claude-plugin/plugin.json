@@ -1,0 +1,6 @@
+{
+  "name": "spec-progress",
+  "version": "0.2.0",
+  "description": "Side pane tracking the implementation sections of a spec",
+  "types": "./types/index.d.ts"
+}

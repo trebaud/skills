@@ -28,7 +28,7 @@ ln -s ~/.agents/skills ~/.opencode/skills
    Understand:     repo-visualizer · pr-visualizer · i-know-kungfu
    Plan:           prd · specs-generator · rfc-generator · interview
    Design:         arch-diagram · kiss-check · threat-model
-   Develop:        architecture-audit · taste
+   Develop:        build-from-spec · architecture-audit · taste
    Test:           test-generator · debug
    Review & Ship:  pr-walkthrough · code-reviewer · security-analysis · semgrep-audit
                    gha-audit · audit-fix · create-pr · releaser
@@ -37,7 +37,7 @@ ln -s ~/.agents/skills ~/.opencode/skills
 - **Understand** -- `repo-visualizer` to map a whole codebase, `pr-visualizer` to explain a diff — both as shareable, dependency-free HTML pages; `i-know-kungfu` to actually *learn* a concept/codebase/paper via an evidence-based active-learning loop
 - **Plan** -- `prd` for product requirements, `specs-generator` for feature specs, `rfc-generator` for proposals, `interview` to validate plans
 - **Design** -- `arch-diagram` to visualize the system, `kiss-check` to challenge complexity, `threat-model` to map what an attacker does with it
-- **Develop** -- `architecture-audit` for architecture and code quality, `taste` for refactoring house rules — scope, indirection, placement, naming, comments, signatures
+- **Develop** -- `build-from-spec` to implement a spec section by section, one commit each, `architecture-audit` for architecture and code quality, `taste` for refactoring house rules — scope, indirection, placement, naming, comments, signatures
 - **Test** -- `test-generator` for coverage, `debug` for test-first bug fixing
 - **Review & Ship** -- `pr-walkthrough` for a guided-review HTML page that walks a human through a PR in call order, `code-reviewer` + `security-analysis` + `semgrep-audit` for code review, `gha-audit` for CI security, `audit-fix` for dependency vulnerabilities, `create-pr` to open the PR, `releaser` to cut a release
 
@@ -45,6 +45,7 @@ ln -s ~/.agents/skills ~/.opencode/skills
 |-------|-------------|
 | [arch-diagram](skills/arch-diagram/SKILL.md) | Generates Mermaid.js architecture diagrams. Keeps visual docs in sync with code. |
 | [audit-fix](skills/audit-fix/SKILL.md) | Audits prod dependencies and fixes vulnerabilities by tracing to root parents, using recursive updates, parent bumps, or replacements. |
+| [build-from-spec](skills/build-from-spec/SKILL.md) | Implements a spec (doc link, file path, URL or pasted text) by splitting it into ordered sections and building each one with its tests and its own commit. In Claude Code, it also tracks the sections in a side-pane progress mod. |
 | [code-reviewer](skills/code-reviewer/SKILL.md) | Comprehensive code review covering quality, security, and maintainability. |
 | [create-pr](skills/create-pr/SKILL.md) | Creates pull requests with auto-generated title and description. |
 | [debug](skills/debug/SKILL.md) | Test-first debugging. Creates reproducing tests, then uses subagents to implement fixes. |
