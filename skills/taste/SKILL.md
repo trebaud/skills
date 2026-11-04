@@ -38,6 +38,8 @@ description: >-
 ## Indirection
 
 - Inline single-use wrappers. Call the underlying function directly.
+- Inline trivial wrappers even when reused: a one-line getter, field fallback, or config read.
+  Keep a function only when it holds real logic reused in several places.
 - No re-exports, aliases, duplicate constants, forwarding wrappers, or type extensions to
   bridge a change. Old and new never live together.
 - Collapse split conditionals into one. Derive booleans as variables in place.
